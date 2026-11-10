@@ -12,7 +12,7 @@ cd dsh-hermes-kit
 ./install.sh
 ```
 
-One command. It copies both plugins into your DSH profile, registers them (dependency, bundle entry, `node_modules` link), and installs the CLIs into `~/.dsh/bin` with their three skills. Reload the app and the picker is there.
+One command. It copies both plugins into your DSH profile, registers them (dependency, bundle entry, `node_modules` link), and installs the CLIs into `~/.dsh/bin` with their three skills. Quit and reopen DeepSeek Harness — the Host composes its plugin graph at boot, so a page reload alone is not enough — and the picker is there.
 
 ```sh
 ./install.sh --dry-run        # print every change, touch nothing
@@ -83,10 +83,10 @@ If you already run an older copy of either plugin, disable it first — two occu
 ## Uninstall
 
 ```sh
-# plugins: remove their entries from <profile>/package.json
+# plugins: remove the two entries from <profile>/package.json (dependencies + bundles)
 rm -rf ~/.dsh/profiles/<profile>/created-plugins/model-picker \
-       ~/.dsh/profiles/<profile>/created-plugins/projects-page \
-       ~/.dsh/profiles/<profile>/node_modules/@dsh-local
+       ~/.dsh/profiles/<profile>/created-plugins/projects-page
+rm ~/.dsh/profiles/<profile>/node_modules/@dsh-local/{hermes-model-picker,projects-page}
 
 # CLIs
 rm ~/.dsh/bin/{mem,ckpt,curator,proj,import-memory,install-brief}

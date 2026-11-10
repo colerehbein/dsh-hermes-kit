@@ -93,5 +93,5 @@ say ""
 if [ "$dry" -eq 1 ]; then
   say "dry run complete."
 else
-  say "installed. Reload the app (or reopen the window) to load the plugins."
+  say "installed. Quit and reopen DeepSeek Harness so the Host loads the new bundles."
 fi
