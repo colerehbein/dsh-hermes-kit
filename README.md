@@ -80,6 +80,10 @@ If you already run an older local copy of either plugin, disable it first: two o
 
 These are client plugins against DSH's internal slot and service APIs (`0.2.x`). They read `ctx.slots`, `ctx.locale`, `ctx.modelDirectories`, and the `conversation.input.model` contract. An upstream slot-contract change can break them; the packages are versioned as a kit and updated together.
 
+## Sibling
+
+[**dsh-kit**](https://github.com/colerehbein/dsh-kit) — memory, checkpoint snapshots, skill curation, and the projects registry these plugins read.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
