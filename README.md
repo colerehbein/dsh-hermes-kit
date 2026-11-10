@@ -30,7 +30,7 @@ Needs `bash`, `python3`, and an existing DSH profile.
 | --- | --- |
 | **Model picker** — [`packages/model-picker`](packages/model-picker) | Replaces the composer's model seat: search with match highlighting, favorites, collapsible provider groups, per-model reasoning levels, and an **Edit models** dialog that decides which models appear at all. |
 | **Projects page** — [`packages/projects-page`](packages/projects-page) | A read-only Projects panel: registry roster, open `TODO.md` items, subfolders, newest sessions, session hover marks. |
-| **Toolbox** — [`packages/toolbox`](packages/toolbox) | One panel, three tabs: a skills manager (curator load counts, enable/disable), provider health (tokens, errors, last used per model), and a kanban board. |
+| **Skills · Providers · Kanban** — [`packages/toolbox`](packages/toolbox) | Three sidebar panels: a skills manager (curator load counts, enable/disable), provider health (tokens, errors, last used per model), and a kanban board. |
 
 ### CLIs — [`tools/dsh-kit`](tools/dsh-kit)
 
@@ -60,18 +60,23 @@ The picker shadows the stock `conversation.input.model` occupant at `priority: -
 
 ![Search across providers](docs/images/search.png)
 
-## Toolbox
+## Skills, Providers, Kanban
+
+Three separate sidebar panels from one package.
+
+![The three sidebar entries](docs/images/sidebar-entries.png)
+
+**Skills** — every skill with its curator load count and last-seen time, a filter, and a switch. Disabling moves the skill to `~/.dsh/skills-retired` and back, because a leading dot does not hide a skill from DSH's catalogue.
 
 ![Skills manager](docs/images/toolbox-skills.png)
 
-- **Skills** — every skill with its curator load count and last-seen time, a filter, and a switch. Disabling moves the skill to `~/.dsh/skills-retired` and back, because a leading dot does not hide a skill from DSH's catalogue.
-- **Providers** — per provider/model totals from the newest 40 session logs: messages, input/output/cache tokens, errors, last used.
+**Providers** — per provider/model totals from the newest 40 session logs: messages, input/output/cache tokens, errors, last used.
 
 ![Provider health](docs/images/toolbox-providers.png)
 
-- **Board** — three columns persisted at `~/.dsh/toolbox/board.json`, drag-and-drop, add and remove.
+**Kanban** — three columns persisted at `~/.dsh/toolbox/board.json`, drag-and-drop, add and remove.
 
-![Board](docs/images/toolbox-board.png)
+![Kanban board](docs/images/toolbox-kanban.png)
 
 ## The Projects page
 

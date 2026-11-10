@@ -328,6 +328,15 @@ window.__ModuleLoader__.load({
       )
     }
 
+    function KanbanPage({ t }) {
+      return h(
+        'div',
+        { className: 'tbx-page' },
+        h('div', { className: 'tbx-head' }, h('span', { className: 'tbx-title' }, t('kanban.title'))),
+        h('div', { className: 'tbx-body' }, h(BoardTab, { t })),
+      )
+    }
+
     function AddCard({ onAdd, label }) {
       const [text, setText] = useState('')
       return h(
@@ -350,47 +359,25 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function ToolboxPage({ t }) {
-      const [tab, setTab] = useState('skills')
-      const tabs = [
-        { id: 'skills', label: t('tab.skills') },
-        { id: 'providers', label: t('tab.providers') },
-        { id: 'board', label: t('tab.board') },
-      ]
-      const move = (delta) => {
-        const index = tabs.findIndex((entry) => entry.id === tab)
-        const next = tabs[(index + delta + tabs.length) % tabs.length]
-        setTab(next.id)
-      }
+    function SkillsPage({ t }) {
       return h(
         'div',
         { className: 'tbx-page' },
-        h('div', { className: 'tbx-head' }, h('span', { className: 'tbx-title' }, t('panel'))),
-        h(
-          'div',
-          { className: 'tbx-tabs', role: 'tablist', 'aria-label': t('panel'), onKeyDown: (event) => {
-            if (event.key === 'ArrowRight') { event.preventDefault(); move(1) }
-            else if (event.key === 'ArrowLeft') { event.preventDefault(); move(-1) }
-          } },
-          tabs.map((entry) => h('button', {
-            key: entry.id,
-            type: 'button',
-            role: 'tab',
-            className: 'tbx-tab',
-            'aria-selected': tab === entry.id,
-            tabIndex: tab === entry.id ? 0 : -1,
-            onClick: () => setTab(entry.id),
-          }, entry.label)),
-        ),
-        h('div', { className: 'tbx-body', role: 'tabpanel' },
-          tab === 'skills' ? h(SkillsTab, { t }) : null,
-          tab === 'providers' ? h(ProvidersTab, { t }) : null,
-          tab === 'board' ? h(BoardTab, { t }) : null,
-        ),
+        h('div', { className: 'tbx-head' }, h('span', { className: 'tbx-title' }, t('skills.title'))),
+        h('div', { className: 'tbx-body' }, h(SkillsTab, { t })),
       )
     }
 
-    const ToolboxIcon = () => h(
+    function ProvidersPage({ t }) {
+      return h(
+        'div',
+        { className: 'tbx-page' },
+        h('div', { className: 'tbx-head' }, h('span', { className: 'tbx-title' }, t('providers.title'))),
+        h('div', { className: 'tbx-body' }, h(ProvidersTab, { t })),
+      )
+    }
+
+    const SkillsIcon = () => h(
       'svg',
       { width: 16, height: 16, viewBox: '0 0 16 16', 'aria-hidden': 'true' },
       h('path', {
@@ -401,12 +388,37 @@ window.__ModuleLoader__.load({
       }),
     )
 
+    const KanbanIcon = () => h(
+      'svg',
+      { width: 16, height: 16, viewBox: '0 0 16 16', 'aria-hidden': 'true' },
+      h('path', {
+        d: 'M2.5 2.5h3v11h-3zM6.5 2.5h3v7h-3zM10.5 2.5h3v9h-3z',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.2,
+      }),
+    )
+
+    const ProvidersIcon = () => h(
+      'svg',
+      { width: 16, height: 16, viewBox: '0 0 16 16', 'aria-hidden': 'true' },
+      h('path', {
+        d: 'M8 2.2 13.8 5 8 7.8 2.2 5zM2.2 8 8 10.8 13.8 8M2.2 11 8 13.8 13.8 11',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.1,
+        strokeLinejoin: 'round',
+      }),
+    )
+
     const en = {
       panel: 'Toolbox',
+      'skills.title': 'Skills',
+      'providers.title': 'Providers',
       loading: 'Loading…',
       'tab.skills': 'Skills',
       'tab.providers': 'Providers',
-      'tab.board': 'Board',
+      'kanban.title': 'Kanban',
       'skills.search': 'Filter skills',
       'skills.totals': '{enabled} enabled · {all} total · {retired} retired',
       'skills.note': 'Loads come from the curator. Disabling moves a skill to ~/.dsh/skills-retired.',
@@ -430,10 +442,12 @@ window.__ModuleLoader__.load({
 
     const zh = {
       panel: '工具箱',
+      'skills.title': '技能',
+      'providers.title': '提供商',
       loading: '加载中…',
       'tab.skills': '技能',
       'tab.providers': '提供商',
-      'tab.board': '看板',
+      'kanban.title': '看板',
       'skills.search': '筛选技能',
       'skills.totals': '{enabled} 启用 · {all} 总数 · {retired} 已停用',
       'skills.note': '加载次数来自 curator。停用会把技能移动到 ~/.dsh/skills-retired。',
@@ -458,15 +472,25 @@ window.__ModuleLoader__.load({
     function apply(ctx) {
       ctx.effect(() => ctx.locale.register(NS, { en, zh }), 'toolbox: dictionaries')
       const t = ctx.locale.bind(NS)
-      ctx.slots.inject('sidebar.panellist', () =>
-        ctx.slots.register(
-          { name: 'sidebar.panellist', id: PANEL, order: 24, locale: NS, label: () => t('panel') },
-          ToolboxIcon,
-        ),
-      )
-      ctx.slots.inject('main', () =>
-        ctx.slots.register({ name: 'main', key: PANEL, locale: NS }, ToolboxPage),
-      )
+      const rows = [
+        { key: 'skills', order: 23, label: 'skills.title', icon: SkillsIcon },
+        { key: 'providers', order: 24, label: 'providers.title', icon: ProvidersIcon },
+        { key: 'kanban', order: 25, label: 'kanban.title', icon: KanbanIcon },
+      ]
+      for (const row of rows) {
+        ctx.slots.inject('sidebar.panellist', () =>
+          ctx.slots.register(
+            { name: 'sidebar.panellist', id: row.key, order: row.order, locale: NS, label: () => t(row.label) },
+            row.icon,
+          ),
+        )
+      }
+      const pages = { skills: SkillsPage, providers: ProvidersPage, kanban: KanbanPage }
+      for (const key of Object.keys(pages)) {
+        ctx.slots.inject('main', () =>
+          ctx.slots.register({ name: 'main', key, locale: NS }, pages[key]),
+        )
+      }
     }
 
     return { inject: ['slots', 'locale'], apply }

@@ -1,6 +1,6 @@
 # @dsh-local/toolbox
 
-A Toolbox panel for DeepSeek Harness: skills manager, provider health, and a kanban board — one sidebar row, three tabs.
+A Toolbox package for DeepSeek Harness that registers three separate sidebar panels: Skills, Providers, and Kanban.
 
 - **Skills** — every skill in `~/.dsh/skills` plus the retired set in `~/.dsh/skills-retired`, with the curator's load count and last-seen time, a filter, and a switch that moves a skill between the two directories. Disabling is a directory move, because a leading dot does not hide a skill from DSH's catalogue.
 - **Providers** — per provider/model totals read from the newest 40 session logs (concatenated zstd JSONL): messages, input/output/cache tokens, error count, last used. Cached for a minute on the Host.
