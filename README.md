@@ -8,12 +8,28 @@ The Hermes desktop app has a genuinely better composer model menu than stock DSH
 
 ## What's in the box
 
-| Package | What it does |
+| Path | What it is |
 | --- | --- |
-| [`packages/model-picker`](packages/model-picker) | Replaces the composer's model seat: search with match highlighting, favorites, collapsible provider groups, per-model reasoning levels, and an **Edit models** visibility editor. |
-| [`packages/projects-page`](packages/projects-page) | A Projects panel that lists every project in `~/.dsh/projects/projects.json`, its open `TODO.md` items, subfolders, and newest sessions. Read-only. |
+| [`packages/model-picker`](packages/model-picker) | The composer model seat: search, favorites, collapsible providers, reasoning levels, and the **Edit models** visibility editor. One plugin, nine behaviours. |
+| [`packages/projects-page`](packages/projects-page) | A Projects panel: registry roster, open `TODO.md` items, subfolders, newest sessions, session hover marks. Read-only. |
+| [`providers/providers.example.yml`](providers/providers.example.yml) | Paste-ready `llm-pi-ai` routes for Nous Research, Command Code (chat **and** Anthropic Messages), and a local OmniRoute — the provider setup these plugins were built against. |
+| [`docs/hermes-parity.md`](docs/hermes-parity.md) | Hermes source file → DSH implementation map, including what was deliberately dropped and why. |
 
 Neither package ships personal data: the Projects roster is read from your own local registry, and the picker keeps its state in `localStorage`.
+
+### Everything the model picker replaces
+
+| Behaviour | Detail |
+| --- | --- |
+| Search | Ordered-subsequence match over model names, per-character highlight, providers kept in place |
+| Favorites | Star any row or `Shift+Enter`; pinned above the providers; exempt from the visibility filter; never listed twice |
+| Provider groups | Collapsible with live counts, remembered across reloads |
+| Reasoning levels | Row chip opens `default / off / low / medium / high` for that exact model and commits model + effort |
+| Edit models | Per-model switches, provider master switch with indeterminate state, `on/total` counters, filter, reset |
+| Visibility rules | Hide-all sentinel per provider, new models default visible, favorites exempt, reset clears |
+| Active state | Check on the current model, pending indicator while a switch commits |
+| Failures | Catalog-failure and selection-error strips with retry |
+| Keyboard + a11y | `↑`/`↓`/`Enter`/`Shift+Enter`/`Esc`, focus stays in search, listbox semantics, portaled panel |
 
 ## The model picker
 
