@@ -1,6 +1,6 @@
 # dsh-hermes-kit
 
-Two [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugins that replace weak surfaces with Hermes desktop's versions — a searchable model picker with favorites and per-model reasoning, and a Projects view — plus the CLI kit the harness was missing: durable memory, restore-safe checkpoints, and evidence about which skills actually fire.
+Three [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugins that replace weak surfaces with Hermes desktop's versions — a searchable model picker with favorites and per-model reasoning, a Projects view, and a Toolbox panel (skills, provider health, kanban) — plus the CLI kit the harness was missing: durable memory, restore-safe checkpoints, and evidence about which skills actually fire.
 
 ![The model picker](docs/images/model-picker.png)
 
@@ -12,7 +12,7 @@ cd dsh-hermes-kit
 ./install.sh
 ```
 
-One command. It copies both plugins into your DSH profile, registers them (dependency, bundle entry, `node_modules` link), and installs the CLIs into `~/.dsh/bin` with their three skills. Quit and reopen DeepSeek Harness — the Host composes its plugin graph at boot, so a page reload alone is not enough — and the picker is there.
+One command. It copies each plugin into your DSH profile, registers them (dependency, bundle entry, `node_modules` link), and installs the CLIs into `~/.dsh/bin` with their three skills. Quit and reopen DeepSeek Harness — the Host composes its plugin graph at boot, so a page reload alone is not enough — and the picker is there.
 
 ```sh
 ./install.sh --dry-run        # print every change, touch nothing
@@ -30,6 +30,7 @@ Needs `bash`, `python3`, and an existing DSH profile.
 | --- | --- |
 | **Model picker** — [`packages/model-picker`](packages/model-picker) | Replaces the composer's model seat: search with match highlighting, favorites, collapsible provider groups, per-model reasoning levels, and an **Edit models** dialog that decides which models appear at all. |
 | **Projects page** — [`packages/projects-page`](packages/projects-page) | A read-only Projects panel: registry roster, open `TODO.md` items, subfolders, newest sessions, session hover marks. |
+| **Toolbox** — [`packages/toolbox`](packages/toolbox) | One panel, three tabs: a skills manager (curator load counts, enable/disable), provider health (tokens, errors, last used per model), and a kanban board. |
 
 ### CLIs — [`tools/dsh-kit`](tools/dsh-kit)
 
@@ -59,6 +60,19 @@ The picker shadows the stock `conversation.input.model` occupant at `priority: -
 
 ![Search across providers](docs/images/search.png)
 
+## Toolbox
+
+![Skills manager](docs/images/toolbox-skills.png)
+
+- **Skills** — every skill with its curator load count and last-seen time, a filter, and a switch. Disabling moves the skill to `~/.dsh/skills-retired` and back, because a leading dot does not hide a skill from DSH's catalogue.
+- **Providers** — per provider/model totals from the newest 40 session logs: messages, input/output/cache tokens, errors, last used.
+
+![Provider health](docs/images/toolbox-providers.png)
+
+- **Board** — three columns persisted at `~/.dsh/toolbox/board.json`, drag-and-drop, add and remove.
+
+![Board](docs/images/toolbox-board.png)
+
 ## The Projects page
 
 Reads `~/.dsh/projects/projects.json` (populate it with `proj import` or `proj adopt <path>`), each project's `TODO.md`, its top-level folders, and the session index. Registers a sidebar panel, a session-row hover mark, and a main panel; the Host half exposes three read-only `/api/projects-page/*` routes. No writes, no personal roster in the package.
@@ -74,6 +88,7 @@ Prefer the plugin manager? Each package installs on its own:
 ```text
 plugin_manager install_bundle file:$PWD/packages/model-picker
 plugin_manager install_bundle file:$PWD/packages/projects-page
+plugin_manager install_bundle file:$PWD/packages/toolbox
 ```
 
 The CLIs are independent of the plugins: `./tools/dsh-kit/install.sh`.

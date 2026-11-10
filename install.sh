@@ -56,7 +56,7 @@ run() {
 say "profile: $profile_dir"
 [ "$dry" -eq 1 ] && say "dry run — nothing will change"
 
-for pkg in model-picker projects-page; do
+for pkg in model-picker projects-page toolbox; do
   src="$here/packages/$pkg"
   dest="$profile_dir/created-plugins/$pkg"
   name="$(python3 -c "import json;print(json.load(open('$src/package.json'))['name'])")"

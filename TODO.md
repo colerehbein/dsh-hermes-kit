@@ -2,13 +2,17 @@
 
 ## Next
 
-- [ ] Skills & tools manager: per-skill loads, error rate, last fired, disable toggle (reads `curator/stats.json` + `~/.dsh/skills`)
-- [ ] Command Center: live sessions/agents with status, model, burn, stop/steer/open
-- [ ] Provider health panel: per-route latency, error rate, cost from session logs
+- [ ] Command Center: live sessions and agents with status, model, burn, stop/steer/open
+- [ ] Session import from ChatGPT / Claude exports
 
 ## Later
 
-- [ ] Kanban board over the shared task API (or a file-backed board plus a tool)
-- [ ] Session import from ChatGPT / Claude exports
-- [ ] Screenshot refresh for the README after the next UI change
-- [ ] Publish the two plugin packages to npm (optional; `file:` install works today)
+- [ ] Screenshot refresh after the next UI change
+- [ ] Publish the plugin packages to npm (optional; `file:` install works today)
+
+## Done
+
+- [x] Model picker with favorites, collapsible providers, reasoning levels, Edit models
+- [x] Projects page
+- [x] Toolbox: skills manager, provider health, kanban board
+- [x] One-command installer and CLI kit (memory, checkpoints, curator, registry, skill audit)

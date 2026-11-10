@@ -1,0 +1,18 @@
+{
+  "name": "@dsh-local/toolbox",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Toolbox panel for DeepSeek Harness: skills manager, provider health, kanban board",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "files": ["index.js", "client.js", "cordis.patch.yml"],
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": { "platform": "web", "immediately": true }
+  }
+}
