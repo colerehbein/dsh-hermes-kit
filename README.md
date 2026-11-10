@@ -1,6 +1,6 @@
 # dsh-hermes-kit
 
-Hermes desktop's good ideas, rebuilt as native [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugins.
+Hermes desktop's good ideas, rebuilt as native [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugins — plus the small tools the harness itself was missing.
 
 The Hermes desktop app has a genuinely better composer model menu than stock DSH: one searchable panel, favorites above the providers, collapsible provider groups, per-model reasoning levels, and an "Edit models" dialog that decides which models appear at all. This kit ports that surface to DSH's client plugin system, plus the Projects page Hermes users miss.
 
@@ -13,6 +13,7 @@ The Hermes desktop app has a genuinely better composer model menu than stock DSH
 | [`packages/model-picker`](packages/model-picker) | The composer model seat: search, favorites, collapsible providers, reasoning levels, and the **Edit models** visibility editor. One plugin, nine behaviours. |
 | [`packages/projects-page`](packages/projects-page) | A Projects panel: registry roster, open `TODO.md` items, subfolders, newest sessions, session hover marks. Read-only. |
 | [`providers/providers.example.yml`](providers/providers.example.yml) | Paste-ready `llm-pi-ai` routes for Nous Research, Command Code (chat **and** Anthropic Messages), and a local OmniRoute — the provider setup these plugins were built against. |
+| [`tools/dsh-kit`](tools/dsh-kit) | Memory, shadow-git checkpoints, a skill curator, the projects registry, and a skill-library audit. Stdlib Python, installs into `~/.dsh`. |
 | [`docs/hermes-parity.md`](docs/hermes-parity.md) | Hermes source file → DSH implementation map, including what was deliberately dropped and why. |
 
 Neither package ships personal data: the Projects roster is read from your own local registry, and the picker keeps its state in `localStorage`.
@@ -54,6 +55,18 @@ Keyboard: `↑`/`↓` move the highlight, `Enter` selects, `Shift+Enter` stars, 
 
 The composer's model seat is a single slot (`conversation.input.model`). A single slot renders the **lowest priority** occupant and every occupant must claim a distinct one, so the picker registers at `priority: -1` and shadows the shipped menu without a duplicate-registration error. Data and submission ride the same per-session `modelDirectories` service the stock picker uses, so switching models keeps DSH's durable selection behaviour.
 
+## Tooling (`tools/dsh-kit`)
+
+| Tool | What it does |
+| --- | --- |
+| `mem` | SQLite + FTS5 memory across sessions: `add`, `search`, `brief`, `forget`. `install-brief` injects the brief into `~/.dsh/AGENTS.md`, so every new session starts with it. |
+| `ckpt` | Shadow-git snapshots stored outside the workspace — `git reset --hard` can't eat them. |
+| `curator` | Reads `~/.dsh/sessions/**/session.v4.jsonl.zstd` and reports which skills load, tool error rates, and which never fire. |
+| `proj` | Imports a Hermes `projects.db` into `~/.dsh/projects/projects.json` — the registry the Projects page reads. |
+| `extras/skill-audit` | Inventories a skill library, finds duplicate and broken entries, and plans a retirement with a dry run. |
+
+Three skills (`dsh-memory`, `dsh-checkpoints`, `dsh-curator`) ship with them, so the agent knows when to reach for each tool. Full details in [`tools/dsh-kit/README.md`](tools/dsh-kit/README.md).
+
 ## Install
 
 ```sh
@@ -70,6 +83,13 @@ plugin_manager install_bundle file:$PWD/packages/projects-page
 
 The same thing by hand: `pnpm add file:…/packages/model-picker` inside `~/.dsh/profiles/<profile>`, add `@dsh-local/hermes-model-picker` to `dsh.profile.bundles` in that profile's `package.json`, then reload. The client bundle is served from disk, so no build step is involved.
 
+The tooling installs separately, because it is a CLI kit rather than a plugin:
+
+```sh
+./tools/dsh-kit/install.sh --dry-run
+./tools/dsh-kit/install.sh
+```
+
 If you already run an older local copy of either plugin, disable it first: two occupants of the model seat at the same priority refuse to register, and two Projects panels both appear in the sidebar.
 
 ## Provider recipes
@@ -79,10 +99,6 @@ If you already run an older local copy of either plugin, disable it first: two o
 ## Compatibility
 
 These are client plugins against DSH's internal slot and service APIs (`0.2.x`). They read `ctx.slots`, `ctx.locale`, `ctx.modelDirectories`, and the `conversation.input.model` contract. An upstream slot-contract change can break them; the packages are versioned as a kit and updated together.
-
-## Sibling
-
-[**dsh-kit**](https://github.com/colerehbein/dsh-kit) — memory, checkpoint snapshots, skill curation, and the projects registry these plugins read.
 
 ## License
 

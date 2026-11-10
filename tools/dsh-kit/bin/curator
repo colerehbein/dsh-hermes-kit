@@ -1,0 +1,244 @@
+#!/usr/bin/env python3
+"""curator — mine session transcripts for what actually fires.
+
+  curator scan                 # rebuild $DSH_HOME/curator/stats.json
+  curator report [--write]     # human report; --write drops curator/report.md
+  curator never [-n 40]        # skills on disk that no session has loaded
+
+Reads ~/.dsh/sessions/**/session.v4.jsonl.zstd (zstd-compressed JSONL),
+extracts tool calls, tool errors and `skill` loads, then compares against
+the skills installed on disk. Read-only: it never edits a session or a skill.
+"""
+import argparse
+import glob
+import json
+import os
+import re
+import subprocess
+import sys
+from collections import Counter, defaultdict
+from datetime import datetime, timezone
+from pathlib import Path
+
+DSH = Path(os.environ.get("DSH_HOME", "~/.dsh")).expanduser()
+SESSIONS = DSH / "sessions"
+SKILLS = DSH / "skills"
+OUT = DSH / "curator"
+
+
+def read_zstd(path):
+    try:
+        from compression import zstd
+        return zstd.decompress(Path(path).read_bytes()).decode("utf-8", "replace")
+    except ImportError:
+        try:
+            return subprocess.run(
+                ["zstd", "-dc", str(path)], capture_output=True, check=True
+            ).stdout.decode("utf-8", "replace")
+        except (OSError, subprocess.CalledProcessError):
+            return None
+
+
+def describe_from_args(raw):
+    try:
+        args = json.loads(raw or "{}")
+    except json.JSONDecodeError:
+        return None
+    if isinstance(args, dict):
+        return args.get("name") or args.get("path") or None
+    return None
+
+
+def parse_session(path):
+    text = read_zstd(path)
+    if not text:
+        return None
+    meta = {}
+    calls = {}
+    tool_counts = Counter()
+    tool_errors = Counter()
+    skill_loads = []
+    turns = 0
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            ev = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        kind = ev.get("type")
+        data = ev.get("data") or {}
+        if kind == "session":
+            meta = {"id": ev.get("id"), "cwd": ev.get("cwd"), "created": ev.get("createdAt")}
+        elif kind == "turn/start":
+            turns += 1
+        elif kind == "tool/call":
+            name = data.get("name") or "?"
+            calls[data.get("callId")] = name
+            tool_counts[name] += 1
+            if name == "skill":
+                target = describe_from_args(data.get("arguments"))
+                if target:
+                    skill_loads.append(target)
+        elif kind == "tool/result":
+            msg = data.get("message") or {}
+            if msg.get("isError"):
+                tool_errors[calls.get(msg.get("toolCallId"), "?")] += 1
+    return {
+        "meta": meta,
+        "turns": turns,
+        "tools": dict(tool_counts),
+        "errors": dict(tool_errors),
+        "skills": skill_loads,
+        "path": str(path),
+    }
+
+
+def installed_skills():
+    found = {}
+    for md in SKILLS.rglob("SKILL.md"):
+        text = md.read_text(encoding="utf-8", errors="replace")
+        m = re.match(r"\A---\s*\n(.*?)\n---", text, re.S)
+        if not m:
+            continue
+        name = ""
+        for line in m.group(1).splitlines():
+            if line.startswith("name:"):
+                name = line.split(":", 1)[1].strip().strip("'\"")
+                break
+        if name:
+            found.setdefault(name, []).append(str(md.relative_to(SKILLS)))
+    return found
+
+
+def scan(args):
+    paths = sorted(glob.glob(str(SESSIONS / "**" / "session.v4.jsonl.zstd"), recursive=True))
+    if args.since:
+        cutoff = datetime.now(timezone.utc).timestamp() - args.since * 86400
+        paths = [p for p in paths if os.path.getmtime(p) >= cutoff]
+    sessions = [s for s in (parse_session(p) for p in paths) if s]
+    loads = Counter()
+    last_seen = {}
+    for s in sessions:
+        for name in s["skills"]:
+            loads[name] += 1
+            last_seen[name] = max(last_seen.get(name, 0), s["meta"].get("created") or 0)
+    tools = Counter()
+    errors = Counter()
+    for s in sessions:
+        tools.update(s["tools"])
+        errors.update(s["errors"])
+    skills = installed_skills()
+    stats = {
+        "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "sessions": len(sessions),
+        "turns": sum(s["turns"] for s in sessions),
+        "tool_calls": sum(tools.values()),
+        "tool_errors": sum(errors.values()),
+        "tools": dict(tools.most_common()),
+        "tool_errors_by_tool": dict(errors.most_common()),
+        "skill_loads": dict(loads.most_common()),
+        "skill_last_seen": last_seen,
+        "installed": {k: v for k, v in skills.items()},
+        "sessions_detail": [
+            {"id": s["meta"].get("id"), "cwd": s["meta"].get("cwd"),
+             "turns": s["turns"], "skills": s["skills"]}
+            for s in sessions
+        ],
+    }
+    out = Path(args.json) if args.json else OUT / "stats.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(stats, indent=1))
+    print(f"{stats['sessions']} sessions · {stats['turns']} turns · "
+          f"{stats['tool_calls']} tool calls · {stats['tool_errors']} errors")
+    print(f"wrote {out}")
+    return stats
+
+
+def load_stats():
+    path = OUT / "stats.json"
+    if not path.exists():
+        sys.exit("no stats yet — run `curator scan`")
+    return json.loads(path.read_text())
+
+
+def cmd_scan(a):
+    scan(a)
+
+
+def cmd_never(a):
+    stats = load_stats()
+    loaded = stats["skill_loads"]
+    never = sorted(n for n in stats["installed"] if n not in loaded)
+    print(f"{len(never)} of {len(stats['installed'])} installed skills were never loaded "
+          f"across {stats['sessions']} sessions\n")
+    for name in never[: a.limit]:
+        print(f"  {name}  ({stats['installed'][name][0]})")
+    if len(never) > a.limit:
+        print(f"  … {len(never) - a.limit} more")
+
+
+def cmd_report(a):
+    stats = load_stats()
+    lines = ["# Curator report", "",
+             f"Generated {stats['generated']} from {stats['sessions']} sessions "
+             f"({stats['turns']} turns, {stats['tool_calls']} tool calls).", ""]
+    if stats["sessions"] == 0:
+        lines += ["No sessions found yet. Run a few turns and rescan.", ""]
+    errs = stats["tool_errors_by_tool"]
+    if errs:
+        lines += ["## Tools that fail", ""]
+        for tool, n in list(errs.items())[: a.limit]:
+            total = stats["tools"].get(tool, n)
+            lines.append(f"- `{tool}` — {n} errors / {total} calls")
+        lines.append("")
+    loads = stats["skill_loads"]
+    lines += ["## Skills that fire", ""]
+    if loads:
+        for name, n in list(loads.items())[: a.limit]:
+            lines.append(f"- `{name}` — {n} load(s)")
+    else:
+        lines.append("_No skill has been loaded in a recorded session yet._")
+    lines.append("")
+    never = [n for n in stats["installed"] if n not in loads]
+    lines += ["## Never loaded", "",
+              f"{len(never)} of {len(stats['installed'])} installed skills. "
+              "Not a verdict on its own — some are seasonal or reference-only.", ""]
+    for name in never[: a.limit]:
+        lines.append(f"- `{name}`")
+    if len(never) > a.limit:
+        lines.append(f"- … {len(never) - a.limit} more")
+    lines.append("")
+    text = "\n".join(lines)
+    if a.write:
+        OUT.mkdir(parents=True, exist_ok=True)
+        (OUT / "report.md").write_text(text + "\n")
+        print(f"wrote {OUT / 'report.md'}")
+    print(text)
+
+
+def main():
+    p = argparse.ArgumentParser(prog="curator", description="session mining for skill curation")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    s = sub.add_parser("scan")
+    s.add_argument("--since", type=int, help="only sessions modified in the last N days")
+    s.add_argument("--json", help="write stats here instead of $DSH_HOME/curator/stats.json")
+    s.set_defaults(fn=cmd_scan)
+
+    n = sub.add_parser("never")
+    n.add_argument("-n", "--limit", type=int, default=40)
+    n.set_defaults(fn=cmd_never)
+
+    r = sub.add_parser("report")
+    r.add_argument("-n", "--limit", type=int, default=15)
+    r.add_argument("--write", action="store_true")
+    r.set_defaults(fn=cmd_report)
+
+    args = p.parse_args()
+    args.fn(args)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+"""install-brief — publish the memory brief through the user-global instruction chain.
+
+`dsh-agent-instructions` (mounted by the standard preset) reads `$DSH_HOME/AGENTS.md` at the first
+request of every session, in every workspace. This writes one managed block into that file and
+leaves everything else in it alone.
+
+  install-brief            # write / update the block
+  install-brief --show     # print the block
+  install-brief --remove   # delete the block, keep the rest of the file
+
+No restart, no composition edit: the next session's first request carries it.
+"""
+import argparse
+import os
+import sys
+from pathlib import Path
+
+DSH = Path(os.environ.get("DSH_HOME", "~/.dsh")).expanduser()
+TARGET = DSH / "AGENTS.md"
+BRIEF = DSH / "memory" / "BRIEF.md"
+START = "<!-- dsh-kit:memory:start -->"
+END = "<!-- dsh-kit:memory:end -->"
+
+PREAMBLE = """## Memory brief
+
+These are durable notes about the user, carried from their own notes. Treat them as context, not as
+tasks: do not act on them unless the request touches them. They are a snapshot — `~/.dsh/bin/mem
+brief` regenerates the source, `~/.dsh/bin/install-brief` republishes it. Say "per memory" when you
+rely on a note.
+
+"""
+
+FOOTER = "\n_End of memory brief._\n"
+
+
+def render(brief_text):
+    body = PREAMBLE + brief_text.rstrip() + "\n" + FOOTER
+    return f"{START}\n{body}{END}\n"
+
+
+def merge(existing, block):
+    if START in existing and END in existing:
+        head = existing[: existing.index(START)].rstrip("\n")
+        tail = existing[existing.index(END) + len(END):].lstrip("\n")
+        out = (head + "\n\n" if head else "") + block + ("\n" + tail if tail else "")
+        return out
+    base = existing.rstrip("\n")
+    return (base + "\n\n" if base.strip() else "") + block
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--show", action="store_true")
+    ap.add_argument("--remove", action="store_true")
+    ap.add_argument("--brief", default=str(BRIEF))
+    ap.add_argument("--target", default=str(TARGET))
+    args = ap.parse_args()
+
+    target = Path(args.target).expanduser()
+    if not target.exists():
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("")
+    existing = target.read_text()
+
+    if args.remove:
+        if START not in existing:
+            print("no managed block to remove")
+            return
+        head = existing[: existing.index(START)].rstrip("\n")
+        tail = existing[existing.index(END) + len(END):].lstrip("\n")
+        target.write_text((head + "\n" if head else "") + (tail + "\n" if tail else ""))
+        print(f"removed the memory block from {target}")
+        return
+
+    brief = Path(args.brief).expanduser()
+    if not brief.exists():
+        sys.exit(f"no brief at {brief} — run `mem brief` first")
+
+    block = render(brief.read_text())
+    if args.show:
+        print(block)
+        return
+
+    target.write_text(merge(existing, block))
+    print(f"wrote {len(block)} bytes into {target}")
+    print(f"source {brief} ({brief.stat().st_size} bytes)")
+
+
+if __name__ == "__main__":
+    main()

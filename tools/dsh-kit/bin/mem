@@ -1,0 +1,228 @@
+#!/usr/bin/env python3
+"""mem — persistent notes for the agent, in SQLite with FTS5.
+
+  mem add "prefers terse answers" --kind pref --tags style
+  mem search "terse"
+  mem list --kind pref
+  mem brief            # pinned + recent, markdown, also written to MEMORY/BRIEF.md
+  mem forget 7
+  mem stats
+
+Store lives under $DSH_HOME (default ~/.dsh): memory/memory.db
+"""
+import argparse
+import os
+import re
+import sqlite3
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+HERE = Path(os.environ.get("DSH_HOME", "~/.dsh")).expanduser()
+DB = HERE / "memory" / "memory.db"
+BRIEF = HERE / "memory" / "BRIEF.md"
+
+
+def now():
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def connect():
+    DB.parent.mkdir(parents=True, exist_ok=True)
+    db = sqlite3.connect(DB)
+    db.row_factory = sqlite3.Row
+    db.executescript(
+        """
+        create table if not exists note(
+          id integer primary key,
+          created text not null,
+          updated text not null,
+          kind text not null default 'fact',
+          tags text not null default '',
+          text text not null unique,
+          pinned integer not null default 0
+        );
+        create virtual table if not exists note_fts using fts5(text, tags);
+        """
+    )
+    return db
+
+
+def norm(text):
+    return re.sub(r"\s+", " ", text.strip())
+
+
+def reindex(db, rowid):
+    db.execute("delete from note_fts where rowid = ?", (rowid,))
+    row = db.execute("select text, tags from note where id = ?", (rowid,)).fetchone()
+    if row:
+        db.execute(
+            "insert into note_fts(rowid, text, tags) values (?, ?, ?)",
+            (rowid, row["text"], row["tags"]),
+        )
+
+
+def fmt(row, show_id=True):
+    pin = "*" if row["pinned"] else " "
+    tags = f'  [{row["tags"]}]' if row["tags"] else ""
+    head = f'#{row["id"]:<4}' if show_id else ""
+    return f'{head}{pin} ({row["kind"]}) {row["text"]}{tags}'
+
+
+def cmd_add(db, a):
+    text = norm(a.text)
+    if not text:
+        sys.exit("empty note")
+    ts = now()
+    cur = db.execute(
+        """insert into note(created, updated, kind, tags, text, pinned)
+           values (?, ?, ?, ?, ?, ?)
+           on conflict(text) do update set
+             updated = excluded.updated,
+             kind = excluded.kind,
+             tags = case when excluded.tags != '' then excluded.tags else note.tags end,
+             pinned = max(note.pinned, excluded.pinned)""",
+        (ts, ts, a.kind, ",".join(sorted(set(a.tags or []))), text, 1 if a.pin else 0),
+    )
+    rowid = cur.lastrowid or db.execute(
+        "select id from note where text = ?", (text,)
+    ).fetchone()["id"]
+    reindex(db, rowid)
+    db.commit()
+    print(f"saved #{rowid}")
+
+
+def cmd_search(db, a):
+    rows = []
+    if a.query.strip():
+        q = a.query.strip()
+        for attempt in (q, '"' + q.replace('"', '""') + '"', "%" + q + "%"):
+            try:
+                if "%" in attempt:
+                    rows = db.execute(
+                        "select * from note where text like ? or tags like ? "
+                        "order by pinned desc, updated desc limit ?",
+                        (attempt, attempt, a.limit),
+                    ).fetchall()
+                else:
+                    rows = db.execute(
+                        "select n.* from note_fts f join note n on n.id = f.rowid "
+                        "where note_fts match ? order by rank limit ?",
+                        (attempt, a.limit),
+                    ).fetchall()
+                break
+            except sqlite3.OperationalError:
+                continue
+    else:
+        rows = db.execute(
+            "select * from note order by pinned desc, updated desc limit ?", (a.limit,)
+        ).fetchall()
+    if not rows:
+        print("no matches")
+        return
+    for row in rows:
+        print(fmt(row))
+
+
+def cmd_list(db, a):
+    sql = "select * from note"
+    args = []
+    if a.kind:
+        sql += " where kind = ?"
+        args.append(a.kind)
+    sql += " order by pinned desc, updated desc limit ?"
+    args.append(a.limit)
+    for row in db.execute(sql, args):
+        print(fmt(row))
+
+
+def cmd_forget(db, a):
+    for nid in a.ids:
+        db.execute("delete from note where id = ?", (nid,))
+        db.execute("delete from note_fts where rowid = ?", (nid,))
+    db.commit()
+    print(f"removed {len(a.ids)}")
+
+
+def clip(text, n=220):
+    return text if len(text) <= n else text[: n - 1].rstrip() + "…"
+
+
+def render(db, limit):
+    pinned = db.execute(
+        "select * from note where pinned = 1 order by kind, id"
+    ).fetchall()
+    recent = db.execute(
+        "select * from note where pinned = 0 order by updated desc limit ?", (limit,)
+    ).fetchall()
+    lines = ["# Memory brief", ""]
+    if pinned:
+        lines += ["## Pinned"] + [f"- ({r['kind']}) {clip(r['text'])}" for r in pinned] + [""]
+    if recent:
+        lines += ["## Recent"] + [f"- ({r['kind']}) {clip(r['text'])}" for r in recent] + [""]
+    if not pinned and not recent:
+        lines.append("_empty_")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def cmd_brief(db, a):
+    out = render(db, a.limit)
+    BRIEF.parent.mkdir(parents=True, exist_ok=True)
+    BRIEF.write_text(out)
+    if a.out:
+        Path(a.out).write_text(out)
+    print(out)
+
+
+def cmd_stats(db, a):
+    total = db.execute("select count(*) c from note").fetchone()["c"]
+    pinned = db.execute("select count(*) c from note where pinned = 1").fetchone()["c"]
+    print(f"{total} notes, {pinned} pinned\n{DB}")
+    for row in db.execute("select kind, count(*) c from note group by kind order by c desc"):
+        print(f"  {row['kind']:<10} {row['c']}")
+
+
+def main():
+    p = argparse.ArgumentParser(prog="mem", description="persistent agent memory")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    a = sub.add_parser("add")
+    a.add_argument("text")
+    a.add_argument("--kind", default="fact",
+                   choices=["fact", "pref", "decision", "person", "project", "lesson"])
+    a.add_argument("--tags", default="")
+    a.add_argument("--pin", action="store_true")
+    a.set_defaults(fn=cmd_add)
+
+    s = sub.add_parser("search")
+    s.add_argument("query")
+    s.add_argument("-n", "--limit", type=int, default=10)
+    s.set_defaults(fn=cmd_search)
+
+    l = sub.add_parser("list")
+    l.add_argument("--kind")
+    l.add_argument("-n", "--limit", type=int, default=20)
+    l.set_defaults(fn=cmd_list)
+
+    f = sub.add_parser("forget")
+    f.add_argument("ids", nargs="+", type=int)
+    f.set_defaults(fn=cmd_forget)
+
+    b = sub.add_parser("brief")
+    b.add_argument("-n", "--limit", type=int, default=8)
+    b.add_argument("--out")
+    b.set_defaults(fn=cmd_brief)
+
+    st = sub.add_parser("stats")
+    st.set_defaults(fn=cmd_stats)
+
+    args = p.parse_args()
+    if getattr(args, "tags", ""):
+        args.tags = [t.strip() for t in args.tags.split(",") if t.strip()]
+    db = connect()
+    args.fn(db, args)
+    db.close()
+
+
+if __name__ == "__main__":
+    main()

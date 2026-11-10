@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+"""ckpt — shadow-git snapshots of a workspace, for rolling back destructive edits.
+
+  ckpt snap -m "before refactor"
+  ckpt list
+  ckpt status              # what changed since the last snapshot
+  ckpt diff                # stat of the same
+  ckpt restore 3f2a1c --apply
+
+Snapshots live outside the workspace, in $DSH_HOME/checkpoints/<workspace-slug>/repo.git,
+so they never touch the project's own .git and survive a `git reset --hard`.
+"""
+import argparse
+import hashlib
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+DSH = Path(os.environ.get("DSH_HOME", "~/.dsh")).expanduser()
+EXCLUDES = [
+    ".git/", ".dsh/", "node_modules/", ".venv/", "venv/", "__pycache__/",
+    ".next/", "dist/", "build/", "target/", ".cache/", ".DS_Store", "*.log",
+]
+
+
+def git(repo, ws, *args, input_text=None):
+    env = dict(os.environ, GIT_DIR=str(repo), GIT_WORK_TREE=str(ws),
+               GIT_INDEX_FILE=str(repo / "index"))
+    proc = subprocess.run(
+        ["git", "-c", "user.name=ckpt", "-c", "user.email=ckpt@local", *args],
+        env=env, cwd=str(ws), text=True,
+        input=input_text, capture_output=True,
+    )
+    if proc.returncode != 0:
+        sys.stderr.write(proc.stderr)
+        sys.exit(proc.returncode)
+    return proc.stdout
+
+
+def paths(args):
+    ws = Path(args.path or os.getcwd()).resolve()
+    slug = hashlib.sha1(str(ws).encode()).hexdigest()[:12]
+    repo = DSH / "checkpoints" / slug / "repo.git"
+    return ws, repo
+
+
+def ensure(repo):
+    if (repo / "HEAD").exists():
+        return False
+    repo.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["git", "init", "--bare", "-q", str(repo)], check=True)
+    info = repo / "info"
+    info.mkdir(exist_ok=True)
+    (info / "exclude").write_text("\n".join(EXCLUDES) + "\n")
+    return True
+
+
+def cmd_snap(a):
+    ws, repo = paths(a)
+    fresh = ensure(repo)
+    git(repo, ws, "add", "-A", ".")
+    out = git(repo, ws, "commit", "-m", a.message, "--allow-empty", "--quiet")
+    head = git(repo, ws, "rev-parse", "--short", "HEAD").strip()
+    print(f"snapshot {head}  {'(new repo)' if fresh else ''}")
+    print(f"  workspace {ws}")
+    print(f"  shadow    {repo}")
+
+
+def cmd_list(a):
+    ws, repo = paths(a)
+    if not (repo / "HEAD").exists():
+        print("no snapshots yet — run `ckpt snap`")
+        return
+    out = git(repo, ws, "log", f"-{a.limit}", "--date=iso",
+              "--format=%h  %ad  %s")
+    print(out.rstrip())
+
+
+def cmd_status(a):
+    ws, repo = paths(a)
+    if not (repo / "HEAD").exists():
+        print("no snapshots yet")
+        return
+    out = git(repo, ws, "status", "--porcelain")
+    print(out.rstrip() or "clean since last snapshot")
+
+
+def cmd_diff(a):
+    ws, repo = paths(a)
+    if not (repo / "HEAD").exists():
+        print("no snapshots yet")
+        return
+    rev = a.rev or "HEAD"
+    print(git(repo, ws, "diff", "--stat", rev).rstrip() or "no differences")
+
+
+def cmd_restore(a):
+    ws, repo = paths(a)
+    if not (repo / "HEAD").exists():
+        sys.exit("no snapshots yet")
+    rev = a.rev
+    stat = git(repo, ws, "diff", "--stat", rev)
+    if not a.apply:
+        print(stat.rstrip() or "nothing to restore")
+        print("\ndry run — add --apply to write these files back")
+        return
+    git(repo, ws, "checkout", rev, "--", ".")
+    print(f"restored tracked paths from {rev}")
+    print("files created after the snapshot were left in place")
+
+
+def cmd_gc(a):
+    ws, repo = paths(a)
+    if not (repo / "HEAD").exists():
+        print("nothing to collect")
+        return
+    git(repo, ws, "gc", "--prune=now", "--quiet")
+    size = sum(f.stat().st_size for f in repo.rglob("*") if f.is_file())
+    print(f"collected; shadow repo is {size/1e6:.1f} MB")
+
+
+def main():
+    p = argparse.ArgumentParser(prog="ckpt", description="workspace snapshots")
+    p.add_argument("--path", help="workspace root (default: cwd)")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    s = sub.add_parser("snap")
+    s.add_argument("-m", "--message", default="snapshot")
+    s.set_defaults(fn=cmd_snap)
+
+    l = sub.add_parser("list")
+    l.add_argument("-n", "--limit", type=int, default=20)
+    l.set_defaults(fn=cmd_list)
+
+    st = sub.add_parser("status")
+    st.set_defaults(fn=cmd_status)
+
+    d = sub.add_parser("diff")
+    d.add_argument("rev", nargs="?", default="HEAD")
+    d.set_defaults(fn=cmd_diff)
+
+    r = sub.add_parser("restore")
+    r.add_argument("rev")
+    r.add_argument("--apply", action="store_true")
+    r.set_defaults(fn=cmd_restore)
+
+    g = sub.add_parser("gc")
+    g.set_defaults(fn=cmd_gc)
+
+    args = p.parse_args()
+    args.fn(args)
+
+
+if __name__ == "__main__":
+    main()

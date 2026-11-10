@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+"""import-memory — bring Hermes MEMORY.md / USER.md into the mem store.
+
+  import-memory --dir ~/hermes-exit-2026-11-07 [--apply]
+
+Blocks in those files are separated by a line containing only §. Each block becomes one note;
+identity blocks are typed `person`, rules `pref`, project state `project`, the rest `fact`.
+A small curated set of hard rules is pinned so `mem brief` surfaces them.
+"""
+import argparse
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+MEM = HERE / "mem"
+
+# Substrings that mark a block as a hard rule; pinned notes lead `mem brief`.
+# Edit this list for your own house rules.
+PINS = [
+    "**name:**",
+    "hard rule",
+    "cannot absorb",
+]
+
+IDENTITY = re.compile(r"^\*\*(name|location|occupation|housing|background|companions|practice):", re.I)
+RULE = re.compile(r"\b(never|always|must|hard rule|law|prefers|requires|rejects|correction)\b", re.I)
+PROJECT = re.compile(r"(~/|projects/|workspace|vault|notes/|docs/|src/)", re.I)
+
+
+def blocks(path):
+    text = path.read_text(encoding="utf-8", errors="replace")
+    for raw in re.split(r"\n\s*§\s*\n", text):
+        block = " ".join(raw.split())
+        if not block or block.startswith("*Navigation:") or block.startswith("🧠"):
+            continue
+        if len(block) < 12:
+            continue
+        yield block
+
+
+def classify(block, source):
+    low = block.lower()
+    if IDENTITY.search(block):
+        return "person"
+    if any(flag in low for flag in PINS):
+        return "pref"
+    if source == "user":
+        return "pref"
+    if RULE.search(block) and len(block) < 260:
+        return "pref"
+    if PROJECT.search(block):
+        return "project"
+    return "fact"
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dir", default="~/hermes-export")
+    # Point --dir at any directory holding MEMORY.md and USER.md.
+    ap.add_argument("--apply", action="store_true")
+    args = ap.parse_args()
+
+    root = Path(args.dir).expanduser()
+    files = [("user", root / "memory" / "USER.md"), ("memory", root / "memory" / "MEMORY.md")]
+    missing = [str(p) for _, p in files if not p.exists()]
+    if missing:
+        sys.exit("missing: " + ", ".join(missing))
+
+    rows = []
+    for source, path in files:
+        for block in blocks(path):
+            kind = classify(block, source)
+            pinned = any(flag in block.lower() for flag in PINS)
+            rows.append((block, kind, f"imported:hermes-2026-11-07,source:{source}", pinned))
+
+    counts = {}
+    for _, kind, _, pinned in rows:
+        counts[kind] = counts.get(kind, 0) + 1
+    print(f"{len(rows)} blocks · " + " · ".join(f"{k} {v}" for k, v in sorted(counts.items())))
+    print(f"{sum(1 for r in rows if r[3])} pinned\n")
+
+    for block, kind, tags, pin in rows:
+        mark = "*" if pin else " "
+        print(f"{mark} ({kind}) {block[:110]}{'…' if len(block) > 110 else ''}")
+    if not args.apply:
+        print("\ndry run — add --apply to write these into the memory store")
+        return
+
+    written = 0
+    for block, kind, tags, pin in rows:
+        cmd = [str(MEM), "add", block, "--kind", kind, "--tags", tags]
+        if pin:
+            cmd.append("--pin")
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+        if proc.returncode != 0:
+            print(proc.stderr.strip(), file=sys.stderr)
+        else:
+            written += 1
+    print(f"\nwrote {written}/{len(rows)} notes")
+
+
+if __name__ == "__main__":
+    main()
