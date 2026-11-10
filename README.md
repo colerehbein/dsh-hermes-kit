@@ -12,7 +12,7 @@ The Hermes desktop app has a genuinely better composer model menu than stock DSH
 | --- | --- |
 | [`packages/model-picker`](packages/model-picker) | The composer model seat: search, favorites, collapsible providers, reasoning levels, and the **Edit models** visibility editor. One plugin, nine behaviours. |
 | [`packages/projects-page`](packages/projects-page) | A Projects panel: registry roster, open `TODO.md` items, subfolders, newest sessions, session hover marks. Read-only. |
-| [`providers/providers.example.yml`](providers/providers.example.yml) | Paste-ready `llm-pi-ai` routes for Nous Research, Command Code (chat **and** Anthropic Messages), and a local OmniRoute — the provider setup these plugins were built against. |
+| [`providers/providers.example.yml`](providers/providers.example.yml) | Paste-ready `llm-pi-ai` routes for Nous Research, Command Code (chat **and** Anthropic Messages), and a local OmniRoute — all 51 models from the setup these plugins were built against. |
 | [`tools/dsh-kit`](tools/dsh-kit) | Memory, shadow-git checkpoints, a skill curator, the projects registry, and a skill-library audit. Stdlib Python, installs into `~/.dsh`. |
 | [`docs/hermes-parity.md`](docs/hermes-parity.md) | Hermes source file → DSH implementation map, including what was deliberately dropped and why. |
 

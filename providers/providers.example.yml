@@ -6,80 +6,136 @@
 #
 # `apiKeyEnv` is a credential REFERENCE. Keys live in DSH's credential store
 # (Settings → Models key fields) and are resolved per request; never inline one.
+#
+# These are the routes the kit was built and tested against: 51 models across 4 providers.
 - id: llm-pi-ai
   name: '@deepseek-ai/dsh-llm-pi-ai'
   config:
     providers:
-      # Nous Research Portal — OpenAI-compatible, 1M-context OSS models.
+      # Nous Research Portal — OpenAI-compatible, long-context OSS models.
       nous:
         displayName: Nous Research
         api: openai-completions
-        baseURL: https://inference-api.nousresearch.com/v1
+        baseURL: 'https://inference-api.nousresearch.com/v1'
         apiKeyEnv: NOUS_API_KEY
-        models: &nous_models
+        models:
           - id: deepseek/deepseek-v4.1-flash
             name: DeepSeek V4.1 Flash
             contextWindow: 1048576
-            reasoningEfforts: &efforts
-              off: null
-              low: low
-              medium: medium
-              high: high
+            input: [text, image]
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
           - id: z-ai/glm-5.3-flash
             name: GLM-5.3 Flash
             contextWindow: 1048576
-            reasoningEfforts: *efforts
+            input: [text, image]
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: anthropic/claude-haiku-5.5
+            name: Claude Haiku 5.5
+            contextWindow: 1000000
+            input: [text, image]
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
           - id: anthropic/claude-sonnet-5.5
             name: Claude Sonnet 5.5
             contextWindow: 1000000
-            reasoningEfforts: *efforts
+            input: [text, image]
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
           - id: openai/gpt-6.1-terra
             name: GPT-6.1 Terra
             contextWindow: 1050000
-            reasoningEfforts: *efforts
-          - id: upstage/solar-mini4:free
+            input: [text, image]
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: moonshotai/kimi-k3.1-pro
+            name: Kimi K3.1 Pro
+            contextWindow: 1048576
+            input: [text, image]
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: 'upstage/solar-mini4:free'
             name: Solar Mini 4 (free)
             contextWindow: 524288
-            reasoningEfforts: *efforts
-          - id: meituan/longcat-2.5:free
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: 'meituan/longcat-2.5:free'
             name: LongCat 2.5 (free)
             contextWindow: 1048576
+            input: [text, image]
+          - id: 'stepfun/step-3.7-flash:free'
+            name: Step 3.7 Flash (free)
+            contextWindow: 262144
+            input: [text, image]
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: 'reflection/beam-1.0-501b-a23b:free'
+            name: Beam 1.0 (free)
+            contextWindow: 262144
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
 
-      # Command Code — chat-completions models (Claude is on /messages, below).
+      # Command Code — chat-completions models. Its Claude models speak /messages only, so they live on the route below.
       commandcode:
         displayName: Command Code
         api: openai-completions
-        baseURL: https://api.commandcode.ai/provider/v1
+        baseURL: 'https://api.commandcode.ai/provider/v1'
         apiKeyEnv: COMMANDCODE_API_KEY
         models:
           - id: deepseek/deepseek-v4-flash
             name: DeepSeek V4.1 Flash
             contextWindow: 1000000
-            reasoningEfforts: *efforts
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
           - id: deepseek/deepseek-v4-pro
             name: DeepSeek V4 Pro
             contextWindow: 1000000
-            reasoningEfforts: *efforts
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
           - id: gpt-5.6-sol
             name: GPT-5.6 Sol
             contextWindow: 1050000
-            reasoningEfforts: *efforts
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: gpt-5.6-terra
+            name: GPT-5.6 Terra
+            contextWindow: 1050000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: gpt-5.5
+            name: GPT-5.5
+            contextWindow: 400000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: gpt-5.3-codex
+            name: GPT-5.3 Codex
+            contextWindow: 400000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: gpt-5.4-mini
+            name: GPT-5.4 Mini
+            contextWindow: 400000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
           - id: Qwen/Qwen3.8-Max
             name: Qwen3.8 Max
             contextWindow: 1000000
-            reasoningEfforts: *efforts
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: Qwen/Qwen3.7-Plus
+            name: Qwen3.7 Plus
+            contextWindow: 1000000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
           - id: moonshotai/Kimi-K3
             name: Kimi K3
             contextWindow: 1000000
-            reasoningEfforts: *efforts
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: zai-org/GLM-5.2
+            name: GLM-5.2
+            contextWindow: 1000000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: zai-org/GLM-5.2-Fast
+            name: GLM-5.2 Fast
+            contextWindow: 1000000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: MiniMaxAI/MiniMax-M3
+            name: MiniMax M3
+            contextWindow: 1000000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: stepfun/Step-3.7-Flash
+            name: Step 3.7 Flash
+            contextWindow: 256000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
 
-      # The same provider, Anthropic Messages: its Claude models are only
-      # advertised on /messages, and a DSH route speaks ONE protocol.
+      # The same provider on Anthropic Messages. A DSH route speaks ONE protocol; the SDK appends /v1/messages, so baseURL stops at /provider.
       commandcode-claude:
         displayName: Command Code (Claude)
         api: anthropic-messages
-        # The Anthropic SDK appends /v1/messages, so stop at /provider.
-        baseURL: https://api.commandcode.ai/provider
+        baseURL: 'https://api.commandcode.ai/provider'
         apiKeyEnv: COMMANDCODE_API_KEY
         models:
           - id: claude-sonnet-5-5
@@ -91,32 +147,105 @@
           - id: claude-haiku-5-5
             name: Claude Haiku 5.5
             contextWindow: 1000000
+          - id: claude-fable-5-2
+            name: Claude Fable 5.2
+            contextWindow: 1000000
+          - id: claude-haiku-4-5-20251001
+            name: Claude Haiku 4.5
+            contextWindow: 200000
 
-      # Local OmniRoute router. Any key the router accepts works; it must not be
-      # empty because DSH's OpenAI-compatible client always sends one.
+      # Local OmniRoute router. DSH always sends a key, so the router must accept one (any value it accepts works).
       omniroute:
         displayName: OmniRoute (local)
         api: openai-completions
-        baseURL: http://localhost:20128/v1
+        baseURL: 'http://localhost:20128/v1'
         apiKeyEnv: OMNIROUTE_CLIENT_KEY
         models:
           - id: auto/best-coding
             name: Router · best-coding
             contextWindow: 2000000
-            reasoningEfforts: *efforts
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: auto/pro-coding
+            name: Router · pro-coding
+            contextWindow: 2000000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
           - id: auto/best-reasoning
             name: Router · best-reasoning
             contextWindow: 2000000
-            reasoningEfforts: *efforts
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
           - id: auto/best-fast
             name: Router · best-fast
             contextWindow: 2000000
-            reasoningEfforts: *efforts
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: 'auto/coding:free'
+            name: 'Router · coding:free'
+            contextWindow: 2000000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: auto/best-free
+            name: Router · best-free
+            contextWindow: 2000000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: auto/cheap
+            name: Router · cheap
+            contextWindow: 2000000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
           - id: glm-flash
             name: GLM Flash
             contextWindow: 1000000
-            reasoningEfforts: *efforts
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: glm-flash-safe
+            name: GLM Flash Safe
+            contextWindow: 1000000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
           - id: code-stack
             name: Code Stack
             contextWindow: 1000000
-            reasoningEfforts: *efforts
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: local-fast
+            name: Local Fast
+            contextWindow: 1048576
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: cloud-escalate
+            name: Cloud Escalate
+            contextWindow: 1000000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: free-fast
+            name: Free Fast
+            contextWindow: 256000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: free-deep
+            name: Free Deep
+            contextWindow: 256000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: free-code
+            name: Free Code
+            contextWindow: 256000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: free-agentic
+            name: Free Agentic
+            contextWindow: 256000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: free-vision
+            name: Free Vision
+            contextWindow: 256000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: jev-code
+            name: Jev Code
+            contextWindow: 262144
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: jev-fast
+            name: Jev Fast
+            contextWindow: 1000000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: jev-deep
+            name: Jev Deep
+            contextWindow: 1000000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: opencode-zen/glm-5.3-flash
+            name: opencode zen · GLM-5.3 Flash
+            contextWindow: 1000000
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
+          - id: opencode-zen/kimi-k3
+            name: opencode zen · Kimi K3
+            contextWindow: 1048576
+            reasoningEfforts: { off: null, low: low, medium: medium, high: high }
