@@ -1,0 +1,122 @@
+# Provider routes for @deepseek-ai/dsh-llm-pi-ai.
+#
+# Paste under `- id: llm-pi-ai / name: '@deepseek-ai/dsh-llm-pi-ai' / config:` in
+# ~/.dsh/profiles/<profile>/cordis.patch.yml, or add them through
+# Settings → Models → Add model provider → Custom model API.
+#
+# `apiKeyEnv` is a credential REFERENCE. Keys live in DSH's credential store
+# (Settings → Models key fields) and are resolved per request; never inline one.
+- id: llm-pi-ai
+  name: '@deepseek-ai/dsh-llm-pi-ai'
+  config:
+    providers:
+      # Nous Research Portal — OpenAI-compatible, 1M-context OSS models.
+      nous:
+        displayName: Nous Research
+        api: openai-completions
+        baseURL: https://inference-api.nousresearch.com/v1
+        apiKeyEnv: NOUS_API_KEY
+        models: &nous_models
+          - id: deepseek/deepseek-v4.1-flash
+            name: DeepSeek V4.1 Flash
+            contextWindow: 1048576
+            reasoningEfforts: &efforts
+              off: null
+              low: low
+              medium: medium
+              high: high
+          - id: z-ai/glm-5.3-flash
+            name: GLM-5.3 Flash
+            contextWindow: 1048576
+            reasoningEfforts: *efforts
+          - id: anthropic/claude-sonnet-5.5
+            name: Claude Sonnet 5.5
+            contextWindow: 1000000
+            reasoningEfforts: *efforts
+          - id: openai/gpt-6.1-terra
+            name: GPT-6.1 Terra
+            contextWindow: 1050000
+            reasoningEfforts: *efforts
+          - id: upstage/solar-mini4:free
+            name: Solar Mini 4 (free)
+            contextWindow: 524288
+            reasoningEfforts: *efforts
+          - id: meituan/longcat-2.5:free
+            name: LongCat 2.5 (free)
+            contextWindow: 1048576
+
+      # Command Code — chat-completions models (Claude is on /messages, below).
+      commandcode:
+        displayName: Command Code
+        api: openai-completions
+        baseURL: https://api.commandcode.ai/provider/v1
+        apiKeyEnv: COMMANDCODE_API_KEY
+        models:
+          - id: deepseek/deepseek-v4-flash
+            name: DeepSeek V4.1 Flash
+            contextWindow: 1000000
+            reasoningEfforts: *efforts
+          - id: deepseek/deepseek-v4-pro
+            name: DeepSeek V4 Pro
+            contextWindow: 1000000
+            reasoningEfforts: *efforts
+          - id: gpt-5.6-sol
+            name: GPT-5.6 Sol
+            contextWindow: 1050000
+            reasoningEfforts: *efforts
+          - id: Qwen/Qwen3.8-Max
+            name: Qwen3.8 Max
+            contextWindow: 1000000
+            reasoningEfforts: *efforts
+          - id: moonshotai/Kimi-K3
+            name: Kimi K3
+            contextWindow: 1000000
+            reasoningEfforts: *efforts
+
+      # The same provider, Anthropic Messages: its Claude models are only
+      # advertised on /messages, and a DSH route speaks ONE protocol.
+      commandcode-claude:
+        displayName: Command Code (Claude)
+        api: anthropic-messages
+        # The Anthropic SDK appends /v1/messages, so stop at /provider.
+        baseURL: https://api.commandcode.ai/provider
+        apiKeyEnv: COMMANDCODE_API_KEY
+        models:
+          - id: claude-sonnet-5-5
+            name: Claude Sonnet 5.5
+            contextWindow: 1000000
+          - id: claude-opus-5-5
+            name: Claude Opus 5.5
+            contextWindow: 1000000
+          - id: claude-haiku-5-5
+            name: Claude Haiku 5.5
+            contextWindow: 1000000
+
+      # Local OmniRoute router. Any key the router accepts works; it must not be
+      # empty because DSH's OpenAI-compatible client always sends one.
+      omniroute:
+        displayName: OmniRoute (local)
+        api: openai-completions
+        baseURL: http://localhost:20128/v1
+        apiKeyEnv: OMNIROUTE_CLIENT_KEY
+        models:
+          - id: auto/best-coding
+            name: Router · best-coding
+            contextWindow: 2000000
+            reasoningEfforts: *efforts
+          - id: auto/best-reasoning
+            name: Router · best-reasoning
+            contextWindow: 2000000
+            reasoningEfforts: *efforts
+          - id: auto/best-fast
+            name: Router · best-fast
+            contextWindow: 2000000
+            reasoningEfforts: *efforts
+          - id: glm-flash
+            name: GLM Flash
+            contextWindow: 1000000
+            reasoningEfforts: *efforts
+          - id: code-stack
+            name: Code Stack
+            contextWindow: 1000000
+            reasoningEfforts: *efforts

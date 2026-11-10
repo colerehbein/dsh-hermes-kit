@@ -1,0 +1,69 @@
+# dsh-hermes-kit
+
+Hermes desktop's good ideas, rebuilt as native [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugins.
+
+The Hermes desktop app has a genuinely better composer model menu than stock DSH: one searchable panel, favorites above the providers, collapsible provider groups, per-model reasoning levels, and an "Edit models" dialog that decides which models appear at all. This kit ports that surface to DSH's client plugin system, plus the Projects page Hermes users miss.
+
+![Model picker](docs/images/model-picker.png)
+
+## What's in the box
+
+| Package | What it does |
+| --- | --- |
+| [`packages/model-picker`](packages/model-picker) | Replaces the composer's model seat: search with match highlighting, favorites, collapsible provider groups, per-model reasoning levels, and an **Edit models** visibility editor. |
+| [`packages/projects-page`](packages/projects-page) | A Projects panel that lists every project in `~/.dsh/projects/projects.json`, its open `TODO.md` items, subfolders, and newest sessions. Read-only. |
+
+Neither package ships personal data: the Projects roster is read from your own local registry, and the picker keeps its state in `localStorage`.
+
+## The model picker
+
+![Edit models](docs/images/edit-models.png)
+
+- **One panel, not drilled menus.** Search matches model names by ordered subsequence and highlights the hit; providers stay grouped with live counts.
+- **Favorites** sit above the providers, starred with the star on any row (or `Shift+Enter` on the highlighted one). A favorite is exempt from the visibility filter and is not repeated in its provider group.
+- **Provider groups collapse** and remember it.
+- **Reasoning levels** are one click from the row: the chip opens `default / off / low / medium / high` for that exact model, and picking one selects the model with that effort.
+- **Edit models…** opens a visibility editor: every model in the catalog, a switch per model, a provider master switch with an indeterminate state, `on/total` counters, a filter, and *Reset to defaults*.
+
+Visibility semantics follow Hermes rather than a naive checklist:
+
+- Never curated means everything shows.
+- Hiding a provider's last model records a hide-all sentinel, so its old defaults do not creep back; re-enabling one model brings back only that model.
+- Models that appear after you curate (a new provider, a refreshed catalog) default to **visible**, tracked with a "known keys" snapshot.
+- `Reset to defaults` clears both keys and returns to everything-visible.
+
+Keyboard: `↑`/`↓` move the highlight, `Enter` selects, `Shift+Enter` stars, `Esc` leaves the editor (or closes the panel). Focus stays in the search field.
+
+### How it slots in
+
+The composer's model seat is a single slot (`conversation.input.model`). A single slot renders the **lowest priority** occupant and every occupant must claim a distinct one, so the picker registers at `priority: -1` and shadows the shipped menu without a duplicate-registration error. Data and submission ride the same per-session `modelDirectories` service the stock picker uses, so switching models keeps DSH's durable selection behaviour.
+
+## Install
+
+```sh
+git clone https://github.com/colerehbein/dsh-hermes-kit.git
+cd dsh-hermes-kit
+```
+
+Install each package into the running profile with DSH's plugin manager, which adds the dependency, appends the bundle, and enables it live:
+
+```text
+plugin_manager install_bundle file:$PWD/packages/model-picker
+plugin_manager install_bundle file:$PWD/packages/projects-page
+```
+
+The same thing by hand: `pnpm add file:…/packages/model-picker` inside `~/.dsh/profiles/<profile>`, add `@dsh-local/hermes-model-picker` to `dsh.profile.bundles` in that profile's `package.json`, then reload. The client bundle is served from disk, so no build step is involved.
+
+If you already run an older local copy of either plugin, disable it first: two occupants of the model seat at the same priority refuse to register, and two Projects panels both appear in the sidebar.
+
+## Provider recipes
+
+`providers/providers.example.yml` carries paste-ready `llm-pi-ai` routes for Nous Research, Command Code (chat + Anthropic Messages), and a local OmniRoute instance. Keys stay in DSH's credential store; the config only names references like `NOUS_API_KEY`.
+
+## Compatibility
+
+These are client plugins against DSH's internal slot and service APIs (`0.2.x`). They read `ctx.slots`, `ctx.locale`, `ctx.modelDirectories`, and the `conversation.input.model` contract. An upstream slot-contract change can break them; the packages are versioned as a kit and updated together.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

@@ -1,0 +1,3 @@
+- insert:
+    - id: '@dsh-local/projects-page:projects'
+      name: '@dsh-local/projects-page'
