@@ -31,7 +31,7 @@ done
 
 echo
 echo "kit installed into $dsh_home"
-echo "  bins:   $dsh_home/bin/{mem,ckpt,curator}"
+echo "  bins:   $dsh_home/bin/{mem,ckpt,curator,proj,import-memory,install-brief}"
 echo "  skills: $dsh_home/skills/{dsh-memory,dsh-checkpoints,dsh-curator}"
 echo
 echo "Optional, for bare command names:  export PATH=\"$dsh_home/bin:\$PATH\""
