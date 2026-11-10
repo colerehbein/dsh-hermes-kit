@@ -30,7 +30,7 @@ Needs `bash`, `python3`, and an existing DSH profile.
 | --- | --- |
 | **Model picker** — [`packages/model-picker`](packages/model-picker) | Replaces the composer's model seat: search with match highlighting, favorites, collapsible provider groups, per-model reasoning levels, and an **Edit models** dialog that decides which models appear at all. |
 | **Projects page** — [`packages/projects-page`](packages/projects-page) | A read-only Projects panel: registry roster, open `TODO.md` items, subfolders, newest sessions, session hover marks. |
-| **Skills · Providers · Kanban** — [`packages/toolbox`](packages/toolbox) | Three sidebar panels: a skills manager (curator load counts, enable/disable), provider health (tokens, errors, last used per model), and a kanban board. |
+| **Skills · Providers · Kanban · Command Center** — [`packages/toolbox`](packages/toolbox) | Four sidebar panels: skills manager (curator load counts, enable/disable), provider health (tokens, errors, last used per model), a kanban board, and a session dashboard. |
 
 ### CLIs — [`tools/dsh-kit`](tools/dsh-kit)
 
@@ -60,9 +60,9 @@ The picker shadows the stock `conversation.input.model` occupant at `priority: -
 
 ![Search across providers](docs/images/search.png)
 
-## Skills, Providers, Kanban
+## Skills, Providers, Kanban, Command Center
 
-Three separate sidebar panels from one package.
+Four separate sidebar panels from one package.
 
 ![The three sidebar entries](docs/images/sidebar-entries.png)
 
@@ -77,6 +77,10 @@ Three separate sidebar panels from one package.
 **Kanban** — three columns persisted at `~/.dsh/toolbox/board.json`, drag-and-drop, add and remove.
 
 ![Kanban board](docs/images/toolbox-kanban.png)
+
+**Command Center** — every durable session with its status, model, message count, token total and last write. Read-only for now: open a session from the sidebar, and live in-flight state stays there.
+
+![Command Center](docs/images/command-center.png)
 
 ## The Projects page
 

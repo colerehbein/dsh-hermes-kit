@@ -210,6 +210,76 @@ async function providersPayload() {
   return value
 }
 
+/** @type {null | { at: number, value: unknown }} */
+let sessionCache = null
+
+/**
+ * One row per durable session, read from its log: title, workspace, model,
+ * message and token totals, and the file's last write. A session is reported
+ * "active" when its log was written within the last two minutes — the files
+ * carry no liveness flag, and a page cannot ask the Host for another tab's
+ * in-flight state.
+ */
+async function sessionsPayload() {
+  if (sessionCache !== null && Date.now() - sessionCache.at < 30_000) return sessionCache.value
+  const rows = []
+  const roots = await fs.readdir(SESSIONS, { withFileTypes: true }).catch(() => [])
+  for (const root of roots) {
+    if (!root.isDirectory()) continue
+    const dirs = await fs.readdir(path.join(SESSIONS, root.name), { withFileTypes: true }).catch(() => [])
+    for (const dir of dirs) {
+      if (!dir.isDirectory()) continue
+      const file = path.join(SESSIONS, root.name, dir.name, 'session.v4.jsonl.zstd')
+      let stat
+      try {
+        stat = await fs.stat(file)
+      } catch {
+        continue
+      }
+      const text = await readSession(file)
+      if (text === null) continue
+      let cwd = ''
+      let title = null
+      let model = ''
+      let messages = 0
+      let tokens = 0
+      for (const line of text.split('\n')) {
+        if (line === '') continue
+        let event
+        try {
+          event = JSON.parse(line)
+        } catch {
+          continue
+        }
+        if (event.type === 'session') {
+          cwd = event.cwd || cwd
+        } else if (event.type === 'session/title') {
+          title = event.data?.title || title
+        } else if (event.type === 'assistant/message') {
+          messages += 1
+          const source = event.data?.message?.source
+          if (source?.provider) model = `${source.provider} / ${source.model}`
+          tokens += event.data?.usage?.totalTokens || 0
+        }
+      }
+      rows.push({
+        id: dir.name,
+        cwd,
+        title: title || path.basename(cwd) || dir.name,
+        model,
+        messages,
+        tokens,
+        updatedAt: stat.mtimeMs,
+        active: Date.now() - stat.mtimeMs < 120_000,
+      })
+    }
+  }
+  rows.sort((a, b) => b.updatedAt - a.updatedAt)
+  const value = { rows, at: Date.now() }
+  sessionCache = { at: Date.now(), value }
+  return value
+}
+
 function emptyBoard() {
   return {
     version: 1,
@@ -311,6 +381,23 @@ export function apply(ctx) {
         },
       }),
     'toolbox: providers route',
+  )
+
+  ctx.effect(
+    () =>
+      ctx.connection.fetch.register({
+        path: '/api/toolbox/sessions',
+        methods: ['GET'],
+        requestBody: 'buffered',
+        fetch: async () => {
+          try {
+            return json(await sessionsPayload())
+          } catch (error) {
+            return failure(error)
+          }
+        },
+      }),
+    'toolbox: sessions route',
   )
 
   ctx.effect(

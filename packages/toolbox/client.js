@@ -41,6 +41,8 @@ window.__ModuleLoader__.load({
 .tbx-row:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .tbx-rowOff{opacity:.55}
 .tbx-name{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 200px}
+.tbx-copy{display:flex;flex-direction:column;min-width:0;flex:1;gap:1px}
+.tbx-copy .tbx-name{flex:0 0 auto;max-width:100%}
 .tbx-desc{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--dsw-alias-label-tertiary);font-size:11px}
 .tbx-load{flex:none;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-tertiary);font-size:11px;min-width:44px;text-align:right}
 .tbx-switch{flex:none;width:30px;height:18px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-3);cursor:pointer;padding:0;position:relative}
@@ -67,6 +69,8 @@ window.__ModuleLoader__.load({
 .tbx-empty{padding:14px;color:var(--dsw-alias-label-tertiary);font-size:12px}
 .tbx-note{color:var(--dsw-alias-label-tertiary);font-size:11px;margin:4px 0 8px}
 .tbx-error{color:var(--dsw-alias-state-error-primary);font-size:12px;padding:6px 0}
+.tbx-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-label-caption);margin-right:6px;vertical-align:middle}
+.tbx-dotOn{background:var(--dsw-alias-state-success-primary,var(--dsw-alias-state-business-primary))}
 .tbx-badge{display:inline-block;border:1px solid var(--dsw-alias-border-l1);border-radius:999px;padding:0 6px;font-size:10px;color:var(--dsw-alias-label-tertiary);line-height:16px}
 `
     if (typeof document !== 'undefined' && document.querySelector('style[data-plugin-css=' + JSON.stringify(CSS_TAG) + ']') === null) {
@@ -328,6 +332,50 @@ window.__ModuleLoader__.load({
       )
     }
 
+    function CommandTab({ t }) {
+      const [data, setData] = useState(null)
+      const [error, setError] = useState(null)
+      useEffect(() => {
+        fetchJson('/api/toolbox/sessions').then(setData).catch((e) => setError(e.message))
+      }, [])
+      if (error) return h('div', { className: 'tbx-error' }, error)
+      if (data === null) return h('div', { className: 'tbx-empty' }, t('loading'))
+      if (data.rows.length === 0) return h('div', { className: 'tbx-empty' }, t('command.empty'))
+      const workspace = (cwd) => (cwd || '').split('/').filter(Boolean).pop() || '—'
+      return h(
+        'div',
+        { className: 'tbx-list' },
+        data.rows.map((row) => h(
+          'div',
+          { className: 'tbx-row', key: row.id },
+          h('span', { className: 'tbx-dot' + (row.active ? ' tbx-dotOn' : ''), title: row.active ? t('sessions.active') : t('sessions.idle') }),
+          h(
+            'span',
+            { className: 'tbx-copy' },
+            h('span', { className: 'tbx-name', title: row.id }, row.title),
+            h(
+              'span',
+              { className: 'tbx-desc' },
+              `${workspace(row.cwd)} · ${row.model || '—'} · ${row.messages} ${t('sessions.messagesShort')} · ${n(row.tokens)} ${t('sessions.tokensShort')}`,
+            ),
+          ),
+          h('span', { className: 'tbx-muted' }, ago(row.updatedAt)),
+        )),
+      )
+    }
+
+    function CommandPage({ t }) {
+      return h(
+        'div',
+        { className: 'tbx-page' },
+        h('div', { className: 'tbx-head' }, h('span', { className: 'tbx-title' }, t('command.title'))),
+        h('div', { className: 'tbx-body' },
+          h('div', { className: 'tbx-note' }, t('command.note')),
+          h(CommandTab, { t }),
+        ),
+      )
+    }
+
     function KanbanPage({ t }) {
       return h(
         'div',
@@ -399,6 +447,19 @@ window.__ModuleLoader__.load({
       }),
     )
 
+    const CommandIcon = () => h(
+      'svg',
+      { width: 16, height: 16, viewBox: '0 0 16 16', 'aria-hidden': 'true' },
+      h('path', {
+        d: 'M1.5 8h3l2-4.5 3 9 2-4.5h3',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.3,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+      }),
+    )
+
     const ProvidersIcon = () => h(
       'svg',
       { width: 16, height: 16, viewBox: '0 0 16 16', 'aria-hidden': 'true' },
@@ -419,6 +480,20 @@ window.__ModuleLoader__.load({
       'tab.skills': 'Skills',
       'tab.providers': 'Providers',
       'kanban.title': 'Kanban',
+      'command.title': 'Command Center',
+      'command.note': 'Every durable session with its model, message count, token total and last write. Read-only: open a session from the sidebar; live in-flight state stays there.',
+      'command.empty': 'No sessions found.',
+      'sessions.status': 'Status',
+      'sessions.title': 'Session',
+      'sessions.workspace': 'Workspace',
+      'sessions.model': 'Model',
+      'sessions.messages': 'Messages',
+      'sessions.tokens': 'Tokens',
+      'sessions.last': 'Last write',
+      'sessions.messagesShort': 'messages',
+      'sessions.tokensShort': 'tokens',
+      'sessions.active': 'active',
+      'sessions.idle': 'idle',
       'skills.search': 'Filter skills',
       'skills.totals': '{enabled} enabled · {all} total · {retired} retired',
       'skills.note': 'Loads come from the curator. Disabling moves a skill to ~/.dsh/skills-retired.',
@@ -448,6 +523,20 @@ window.__ModuleLoader__.load({
       'tab.skills': '技能',
       'tab.providers': '提供商',
       'kanban.title': '看板',
+      'command.title': '指挥中心',
+      'command.note': '每个持久会话的模型、消息数、token 总量与最近写入。只读：从左侧边栏打开会话。',
+      'command.empty': '没有会话。',
+      'sessions.status': '状态',
+      'sessions.title': '会话',
+      'sessions.workspace': '工作区',
+      'sessions.model': '模型',
+      'sessions.messages': '消息',
+      'sessions.tokens': 'Token',
+      'sessions.last': '最近写入',
+      'sessions.messagesShort': '条消息',
+      'sessions.tokensShort': 'token',
+      'sessions.active': '活跃',
+      'sessions.idle': '空闲',
       'skills.search': '筛选技能',
       'skills.totals': '{enabled} 启用 · {all} 总数 · {retired} 已停用',
       'skills.note': '加载次数来自 curator。停用会把技能移动到 ~/.dsh/skills-retired。',
@@ -476,6 +565,7 @@ window.__ModuleLoader__.load({
         { key: 'skills', order: 23, label: 'skills.title', icon: SkillsIcon },
         { key: 'providers', order: 24, label: 'providers.title', icon: ProvidersIcon },
         { key: 'kanban', order: 25, label: 'kanban.title', icon: KanbanIcon },
+        { key: 'command', order: 26, label: 'command.title', icon: CommandIcon },
       ]
       for (const row of rows) {
         ctx.slots.inject('sidebar.panellist', () =>
@@ -485,7 +575,7 @@ window.__ModuleLoader__.load({
           ),
         )
       }
-      const pages = { skills: SkillsPage, providers: ProvidersPage, kanban: KanbanPage }
+      const pages = { skills: SkillsPage, providers: ProvidersPage, kanban: KanbanPage, command: CommandPage }
       for (const key of Object.keys(pages)) {
         ctx.slots.inject('main', () =>
           ctx.slots.register({ name: 'main', key, locale: NS }, pages[key]),
