@@ -1,104 +1,103 @@
 # dsh-hermes-kit
 
-Hermes desktop's good ideas, rebuilt as native [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugins — plus the small tools the harness itself was missing.
+Two [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugins that replace weak surfaces with Hermes desktop's versions — a searchable model picker with favorites and per-model reasoning, and a Projects view — plus the CLI kit the harness was missing: durable memory, restore-safe checkpoints, and evidence about which skills actually fire.
 
-The Hermes desktop app has a genuinely better composer model menu than stock DSH: one searchable panel, favorites above the providers, collapsible provider groups, per-model reasoning levels, and an "Edit models" dialog that decides which models appear at all. This kit ports that surface to DSH's client plugin system, plus the Projects page Hermes users miss.
-
-![Model picker](docs/images/model-picker.png)
-
-## What's in the box
-
-| Path | What it is |
-| --- | --- |
-| [`packages/model-picker`](packages/model-picker) | The composer model seat: search, favorites, collapsible providers, reasoning levels, and the **Edit models** visibility editor. One plugin, nine behaviours. |
-| [`packages/projects-page`](packages/projects-page) | A Projects panel: registry roster, open `TODO.md` items, subfolders, newest sessions, session hover marks. Read-only. |
-| [`providers/providers.example.yml`](providers/providers.example.yml) | Paste-ready `llm-pi-ai` routes for Nous Research, Command Code (chat **and** Anthropic Messages), and a local OmniRoute — all 51 models from the setup these plugins were built against. |
-| [`tools/dsh-kit`](tools/dsh-kit) | Memory, shadow-git checkpoints, a skill curator, the projects registry, and a skill-library audit. Stdlib Python, installs into `~/.dsh`. |
-| [`docs/hermes-parity.md`](docs/hermes-parity.md) | Hermes source file → DSH implementation map, including what was deliberately dropped and why. |
-
-Neither package ships personal data: the Projects roster is read from your own local registry, and the picker keeps its state in `localStorage`.
-
-### Everything the model picker replaces
-
-| Behaviour | Detail |
-| --- | --- |
-| Search | Ordered-subsequence match over model names, per-character highlight, providers kept in place |
-| Favorites | Star any row or `Shift+Enter`; pinned above the providers; exempt from the visibility filter; never listed twice |
-| Provider groups | Collapsible with live counts, remembered across reloads |
-| Reasoning levels | Row chip opens `default / off / low / medium / high` for that exact model and commits model + effort |
-| Edit models | Per-model switches, provider master switch with indeterminate state, `on/total` counters, filter, reset |
-| Visibility rules | Hide-all sentinel per provider, new models default visible, favorites exempt, reset clears |
-| Active state | Check on the current model, pending indicator while a switch commits |
-| Failures | Catalog-failure and selection-error strips with retry |
-| Keyboard + a11y | `↑`/`↓`/`Enter`/`Shift+Enter`/`Esc`, focus stays in search, listbox semantics, portaled panel |
-
-## The model picker
-
-![Edit models](docs/images/edit-models.png)
-
-- **One panel, not drilled menus.** Search matches model names by ordered subsequence and highlights the hit; providers stay grouped with live counts.
-- **Favorites** sit above the providers, starred with the star on any row (or `Shift+Enter` on the highlighted one). A favorite is exempt from the visibility filter and is not repeated in its provider group.
-- **Provider groups collapse** and remember it.
-- **Reasoning levels** are one click from the row: the chip opens `default / off / low / medium / high` for that exact model, and picking one selects the model with that effort.
-- **Edit models…** opens a visibility editor: every model in the catalog, a switch per model, a provider master switch with an indeterminate state, `on/total` counters, a filter, and *Reset to defaults*.
-
-Visibility semantics follow Hermes rather than a naive checklist:
-
-- Never curated means everything shows.
-- Hiding a provider's last model records a hide-all sentinel, so its old defaults do not creep back; re-enabling one model brings back only that model.
-- Models that appear after you curate (a new provider, a refreshed catalog) default to **visible**, tracked with a "known keys" snapshot.
-- `Reset to defaults` clears both keys and returns to everything-visible.
-
-Keyboard: `↑`/`↓` move the highlight, `Enter` selects, `Shift+Enter` stars, `Esc` leaves the editor (or closes the panel). Focus stays in the search field.
-
-### How it slots in
-
-The composer's model seat is a single slot (`conversation.input.model`). A single slot renders the **lowest priority** occupant and every occupant must claim a distinct one, so the picker registers at `priority: -1` and shadows the shipped menu without a duplicate-registration error. Data and submission ride the same per-session `modelDirectories` service the stock picker uses, so switching models keeps DSH's durable selection behaviour.
-
-## Tooling (`tools/dsh-kit`)
-
-| Tool | What it does |
-| --- | --- |
-| `mem` | SQLite + FTS5 memory across sessions: `add`, `search`, `brief`, `forget`. `install-brief` injects the brief into `~/.dsh/AGENTS.md`, so every new session starts with it. |
-| `ckpt` | Shadow-git snapshots stored outside the workspace — `git reset --hard` can't eat them. |
-| `curator` | Reads `~/.dsh/sessions/**/session.v4.jsonl.zstd` and reports which skills load, tool error rates, and which never fire. |
-| `proj` | Imports a Hermes `projects.db` into `~/.dsh/projects/projects.json` — the registry the Projects page reads. |
-| `extras/skill-audit` | Inventories a skill library, finds duplicate and broken entries, and plans a retirement with a dry run. |
-
-Three skills (`dsh-memory`, `dsh-checkpoints`, `dsh-curator`) ship with them, so the agent knows when to reach for each tool. Full details in [`tools/dsh-kit/README.md`](tools/dsh-kit/README.md).
+![The model picker](docs/images/model-picker.png)
 
 ## Install
 
 ```sh
 git clone https://github.com/colerehbein/dsh-hermes-kit.git
 cd dsh-hermes-kit
+./install.sh
 ```
 
-Install each package into the running profile with DSH's plugin manager, which adds the dependency, appends the bundle, and enables it live:
+One command. It copies both plugins into your DSH profile, registers them (dependency, bundle entry, `node_modules` link), and installs the CLIs into `~/.dsh/bin` with their three skills. Reload the app and the picker is there.
+
+```sh
+./install.sh --dry-run        # print every change, touch nothing
+./install.sh --profile web    # target a named profile (default: most recently used)
+./install.sh --no-tools       # plugins only, skip the CLIs
+```
+
+Needs `bash`, `python3`, and an existing DSH profile.
+
+## What's in the kit
+
+### Plugins
+
+| Plugin | What it does |
+| --- | --- |
+| **Model picker** — [`packages/model-picker`](packages/model-picker) | Replaces the composer's model seat: search with match highlighting, favorites, collapsible provider groups, per-model reasoning levels, and an **Edit models** dialog that decides which models appear at all. |
+| **Projects page** — [`packages/projects-page`](packages/projects-page) | A read-only Projects panel: registry roster, open `TODO.md` items, subfolders, newest sessions, session hover marks. |
+
+### CLIs — [`tools/dsh-kit`](tools/dsh-kit)
+
+| Command | What it does |
+| --- | --- |
+| `mem` | SQLite+FTS5 memory across sessions: `add`, `search`, `brief`, `forget`. `install-brief` feeds the brief into `~/.dsh/AGENTS.md`, so every new session starts with it. |
+| `ckpt` | Shadow-git snapshots stored outside the workspace — `git reset --hard` cannot destroy them. |
+| `curator` | Reads `~/.dsh/sessions/**/*.jsonl.zstd` and reports skill loads, tool error rates, and skills that never fire. |
+| `proj` | Imports a Hermes `projects.db` into `~/.dsh/projects/projects.json` — the registry the Projects page reads. |
+| `extras/skill-audit` | Inventories a skill library, finds duplicate and broken entries, plans a retirement with a dry run. |
+
+Three skills (`dsh-memory`, `dsh-checkpoints`, `dsh-curator`) ship with the CLIs, so the agent knows when to reach for each tool.
+
+## The model picker
+
+![Edit models](docs/images/edit-models.png)
+
+- **One panel, not drilled menus.** Search matches model names by ordered subsequence and highlights the hit; providers stay grouped with live counts.
+- **Favorites** sit above the providers, starred with the star on any row (or `Shift+Enter`). A favorite is exempt from the visibility filter and is never listed twice.
+- **Provider groups collapse** and remember it.
+- **Reasoning levels** are one click from the row: the chip opens `default / off / low / medium / high` for that exact model, and picking one commits model + effort.
+- **Edit models…** opens a visibility editor: a switch per model, a provider master switch with an indeterminate state, `on/total` counters, a filter, and *Reset to defaults*.
+- **Visibility rules** follow Hermes: never-curated means everything; hiding a provider's last model records a hide-all sentinel; models that arrive later default to visible; `Reset` clears both keys.
+- **Keyboard**: `↑`/`↓` move the highlight, `Enter` selects, `Shift+Enter` stars, `Esc` leaves the editor or closes. Focus stays in the search field.
+
+The picker shadows the stock `conversation.input.model` occupant at `priority: -1` (a single slot renders the lowest priority and requires distinct priorities) and reuses the same per-session `modelDirectories` service, so model switches keep DSH's durable behaviour.
+
+![Search across providers](docs/images/search.png)
+
+## The Projects page
+
+Reads `~/.dsh/projects/projects.json` (populate it with `proj import` or `proj adopt <path>`), each project's `TODO.md`, its top-level folders, and the session index. Registers a sidebar panel, a session-row hover mark, and a main panel; the Host half exposes three read-only `/api/projects-page/*` routes. No writes, no personal roster in the package.
+
+## Provider recipes
+
+[`providers/providers.example.yml`](providers/providers.example.yml) carries the 51-model, 4-route setup these plugins were built against: Nous Research, Command Code (chat **and** its Anthropic Messages-only Claude models), and a local OmniRoute. Keys stay in DSH's credential store; the file names references only.
+
+## Manual install
+
+Prefer the plugin manager? Each package installs on its own:
 
 ```text
 plugin_manager install_bundle file:$PWD/packages/model-picker
 plugin_manager install_bundle file:$PWD/packages/projects-page
 ```
 
-The same thing by hand: `pnpm add file:…/packages/model-picker` inside `~/.dsh/profiles/<profile>`, add `@dsh-local/hermes-model-picker` to `dsh.profile.bundles` in that profile's `package.json`, then reload. The client bundle is served from disk, so no build step is involved.
+The CLIs are independent of the plugins: `./tools/dsh-kit/install.sh`.
 
-The tooling installs separately, because it is a CLI kit rather than a plugin:
+If you already run an older copy of either plugin, disable it first — two occupants of the model seat at the same priority refuse to register, and two Projects panels both appear in the sidebar.
+
+## Uninstall
 
 ```sh
-./tools/dsh-kit/install.sh --dry-run
-./tools/dsh-kit/install.sh
+# plugins: remove their entries from <profile>/package.json
+rm -rf ~/.dsh/profiles/<profile>/created-plugins/model-picker \
+       ~/.dsh/profiles/<profile>/created-plugins/projects-page \
+       ~/.dsh/profiles/<profile>/node_modules/@dsh-local
+
+# CLIs
+rm ~/.dsh/bin/{mem,ckpt,curator,proj,import-memory,install-brief}
+rm -rf ~/.dsh/skills/{dsh-memory,dsh-checkpoints,dsh-curator}
 ```
 
-If you already run an older local copy of either plugin, disable it first: two occupants of the model seat at the same priority refuse to register, and two Projects panels both appear in the sidebar.
-
-## Provider recipes
-
-`providers/providers.example.yml` carries paste-ready `llm-pi-ai` routes for Nous Research, Command Code (chat + Anthropic Messages), and a local OmniRoute instance. Keys stay in DSH's credential store; the config only names references like `NOUS_API_KEY`.
+Data stays under `~/.dsh/{memory,curator,checkpoints,projects}`.
 
 ## Compatibility
 
-These are client plugins against DSH's internal slot and service APIs (`0.2.x`). They read `ctx.slots`, `ctx.locale`, `ctx.modelDirectories`, and the `conversation.input.model` contract. An upstream slot-contract change can break them; the packages are versioned as a kit and updated together.
+Client plugins against DSH's internal slot and service APIs (`0.2.x`): `ctx.slots`, `ctx.locale`, `ctx.modelDirectories`, and the `conversation.input.model` contract. An upstream slot-contract change can break them; the kit is versioned as a whole.
 
 ## License
 
