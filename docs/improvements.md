@@ -75,7 +75,7 @@ Ten to fifteen concrete next steps for every surface shipped with the kit. Effor
 5. **Cost** — a price table per route/model; show estimated spend. (M)
 6. **Sortable columns** — every numeric header. (S)
 7. **Export** — CSV/JSON of the current view. (S)
-8. **Ping** — a one-token test per model with the measured latency. (M)
+8. **Ping** — a one-token test per model with the measured latency. (M) ✅ shipped
 9. **Rollups** — provider totals with expandable models. (S)
 10. **Auto-refresh** — a visible "as of" timestamp and a refresh interval. (S)
 11. **Never-used models** — configured but absent from every log. (S)

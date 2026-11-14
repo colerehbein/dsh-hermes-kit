@@ -70,7 +70,7 @@ Four separate sidebar panels from one package.
 
 ![Skills manager](docs/images/toolbox-skills.png)
 
-**Providers** — per provider/model totals from the newest 40 session logs: messages, input/output/cache tokens, mean response time, errors, last used.
+**Providers** — per provider/model totals from the newest 40 session logs: messages, input/output/cache tokens, mean response time, errors, last used — plus a **Test** button that makes one timed one-token call to that exact route.
 
 ![Provider health](docs/images/toolbox-providers.png)
 

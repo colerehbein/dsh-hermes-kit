@@ -22,4 +22,5 @@
 - [x] Provider mean response time
 - [x] Command Center Stop (session/cancel)
 - [x] `kanban` agent tool (list/add/move/remove)
+- [x] Provider Test button (one-token ping)
 - [x] One-command installer and CLI kit (memory, checkpoints, curator, registry, skill audit)

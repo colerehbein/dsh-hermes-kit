@@ -11,6 +11,7 @@
  * Nothing here talks to a model. The session-log read is bounded to the newest
  * sessions and cached briefly, because each file is zstd-compressed JSONL.
  */
+import { BlockAssembler, createUserMessage } from '@deepseek-ai/dsh-llm'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { execFile } from 'node:child_process'
 import { promises as fs } from 'node:fs'
@@ -31,7 +32,7 @@ const SESSION_LIMIT = 40
 const CACHE_MS = 60_000
 
 /** Required carrier and tool registry. */
-export const inject = ['connection', 'tools']
+export const inject = ['connection', 'tools', 'llm']
 
 /** @type {null | { at: number, value: unknown }} */
 let providerCache = null
@@ -361,6 +362,28 @@ function boardText(board) {
   return board.columns.map((column) => `${column.title} (${column.cards.length}): ${column.cards.map((card) => card.text).join(' | ') || '—'}`).join('\n')
 }
 
+/**
+ * One explicit one-token call to a configured route, timed end to end. This is
+ * the only place the panel spends money, and only when the reader presses Test.
+ */
+async function pingRoute(ctx, provider, model) {
+  const signal = AbortSignal.timeout(45_000)
+  const call = await ctx.llm.prepareCall({ provider, model, maxTokens: 8 }, signal)
+  const message = createUserMessage({ content: [{ type: 'text', text: 'Reply with the single word: ok' }], source: { kind: 'dsh-toolbox-ping' } })
+  const assembler = new BlockAssembler()
+  const started = Date.now()
+  let firstChunkMs = null
+  for await (const chunk of call.stream({ ...call.config, messages: [message], maxTokens: 8, purpose: 'toolbox-ping', signal })) {
+    if (firstChunkMs === null) firstChunkMs = Date.now() - started
+    assembler.push(chunk)
+  }
+  const text = assembler.blocks()
+    .flatMap((block) => (block.type === 'text' ? [block.text] : []))
+    .join(' ')
+    .trim()
+  return { ok: true, firstChunkMs, totalMs: Date.now() - started, text: text.slice(0, 80) }
+}
+
 /** Register the panel's routes for this plugin's lifetime. */
 export function apply(ctx) {
   ctx.tools.register(
@@ -479,6 +502,30 @@ export function apply(ctx) {
         },
       }),
     'toolbox: providers route',
+  )
+
+  ctx.effect(
+    () =>
+      ctx.connection.fetch.register({
+        path: '/api/toolbox/ping',
+        methods: ['POST'],
+        requestBody: 'buffered',
+        fetch: async (request) => {
+          try {
+            const body = await request.json()
+            const provider = String(body?.provider || '')
+            const model = String(body?.model || '')
+            if (provider === '' || model === '') return json({ error: 'provider and model are required' }, 400)
+            const result = await pingRoute(ctx, provider, model)
+            providerCache = null
+            sessionCache = null
+            return json(result)
+          } catch (error) {
+            return json({ ok: false, error: error instanceof Error ? error.message : String(error) }, 200)
+          }
+        },
+      }),
+    'toolbox: ping route',
   )
 
   ctx.effect(

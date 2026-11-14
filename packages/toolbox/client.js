@@ -215,9 +215,29 @@ window.__ModuleLoader__.load({
     function ProvidersTab({ t }) {
       const [data, setData] = useState(null)
       const [error, setError] = useState(null)
+      const [tests, setTests] = useState({})
       useEffect(() => {
         fetchJson('/api/toolbox/providers').then(setData).catch((e) => setError(e.message))
       }, [])
+      const ping = async (row) => {
+        const key = `${row.provider}::${row.model}`
+        setTests((previous) => ({ ...previous, [key]: { state: 'loading' } }))
+        try {
+          const result = await fetchJson('/api/toolbox/ping', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ provider: row.provider, model: row.model }),
+          })
+          setTests((previous) => ({
+            ...previous,
+            [key]: result.ok === true
+              ? { state: 'ok', label: result.firstChunkMs === null ? `${result.totalMs}ms` : `${result.firstChunkMs}ms` }
+              : { state: 'error', label: result.error || t('providers.testFailed') },
+          }))
+        } catch (e) {
+          setTests((previous) => ({ ...previous, [key]: { state: 'error', label: e.message } }))
+        }
+      }
       if (error) return h('div', { className: 'tbx-error' }, error)
       if (data === null) return h('div', { className: 'tbx-empty' }, t('loading'))
       return h(
@@ -238,6 +258,7 @@ window.__ModuleLoader__.load({
                 h('th', { className: 'num' }, t('providers.latency')),
                 h('th', { className: 'num' }, t('providers.errors')),
                 h('th', { className: 'num' }, t('providers.last')),
+                h('th', null, t('providers.test')),
               )),
               h('tbody', null, data.rows.map((row) => h('tr', { key: `${row.provider}::${row.model}` },
                 h('td', null,
@@ -252,6 +273,15 @@ window.__ModuleLoader__.load({
                 h('td', { className: 'num' }, row.latencyMs === null || row.latencyMs === undefined ? '—' : row.latencyMs < 1000 ? `${row.latencyMs}ms` : `${(row.latencyMs / 1000).toFixed(1)}s`),
                 h('td', { className: 'num' }, String(row.errors)),
                 h('td', { className: 'num' }, ago(row.lastUsed)),
+                h('td', null, (() => {
+                  const key = `${row.provider}::${row.model}`
+                  const test = tests[key]
+                  if (test === undefined) {
+                    return h('button', { type: 'button', className: 'tbx-btn', onClick: () => void ping(row) }, t('providers.test'))
+                  }
+                  if (test.state === 'loading') return h('span', { className: 'tbx-muted' }, t('providers.testing'))
+                  return h('span', { className: 'tbx-muted', title: test.label }, test.state === 'ok' ? `✓ ${test.label}` : `✕ ${test.label.slice(0, 28)}`)
+                })()),
               ))),
             ),
       )
@@ -659,6 +689,9 @@ window.__ModuleLoader__.load({
       'providers.latency': 'Response',
       'providers.errors': 'Errors',
       'providers.last': 'Last',
+      'providers.test': 'Test',
+      'providers.testing': 'Testing…',
+      'providers.testFailed': 'failed',
       'providers.empty': 'No model calls recorded yet.',
       'board.note': 'Drag cards between columns. Saved to ~/.dsh/toolbox/board.json.',
       'board.saved': 'Saved.',
@@ -712,6 +745,9 @@ window.__ModuleLoader__.load({
       'providers.latency': '响应',
       'providers.errors': '错误',
       'providers.last': '最近',
+      'providers.test': '测试',
+      'providers.testing': '测试中…',
+      'providers.testFailed': '失败',
       'providers.empty': '还没有模型调用记录。',
       'board.note': '拖动卡片到其他列。保存于 ~/.dsh/toolbox/board.json。',
       'board.saved': '已保存。',
