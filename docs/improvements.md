@@ -91,7 +91,7 @@ Ten to fifteen concrete next steps for every surface shipped with the kit. Effor
 5. **WIP limits** — per column, with a counter and a soft warning. (S)
 6. **Per-workspace boards** — one board per workspace instead of one global file. (M)
 7. **Multiple boards** — swimlanes or named boards. (L)
-8. **Agent surface** — a tool/command so the agent can add and move cards. (M)
+8. **Agent surface** — a tool/command so the agent can add and move cards. (M) ✅ shipped: `kanban` tool
 9. **Undo delete** — a toast that restores the card. (S)
 10. **Collapse Done** — keep finished work out of the way. (S)
 11. **Filter** — by text and label. (S)
@@ -102,7 +102,7 @@ Ten to fifteen concrete next steps for every surface shipped with the kit. Effor
 ## Command Center
 
 1. **Open** — click a row to focus that session. (L — client session-open API)
-2. **Stop / steer** — `session/cancel` and queue edits with confirmation. (L)
+2. **Stop / steer** — `session/cancel` and queue edits with confirmation. (L) ◐ shipped: Stop wired to `session/cancel`; steer still open
 3. **Live state** — running/awaiting from the client session store, not log mtime. (M)
 4. **Pending approvals** — show which sessions are blocked on a question. (M)
 5. **Subagent tree** — parent/child lineage instead of a flat list. (M)

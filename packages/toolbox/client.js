@@ -451,16 +451,30 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function CommandTab({ t }) {
+    function CommandTab({ t, stop }) {
       const [data, setData] = useState(null)
       const [error, setError] = useState(null)
-      useEffect(() => {
+      const [stopping, setStopping] = useState(null)
+      const load = useCallback(() => {
         fetchJson('/api/toolbox/sessions').then(setData).catch((e) => setError(e.message))
       }, [])
+      useEffect(load, [load])
       if (error) return h('div', { className: 'tbx-error' }, error)
       if (data === null) return h('div', { className: 'tbx-empty' }, t('loading'))
       if (data.rows.length === 0) return h('div', { className: 'tbx-empty' }, t('command.empty'))
       const workspace = (cwd) => (cwd || '').split('/').filter(Boolean).pop() || '—'
+      const cancel = async (row) => {
+        setStopping(row.id)
+        try {
+          const result = await stop(row.id)
+          if (result?.ok === false) setError(result.error?.message || t('command.stopFailed'))
+          window.setTimeout(load, 1200)
+        } catch (e) {
+          setError(e.message)
+        } finally {
+          setStopping(null)
+        }
+      }
       return h(
         'div',
         { className: 'tbx-list' },
@@ -478,19 +492,27 @@ window.__ModuleLoader__.load({
               `${workspace(row.cwd)} · ${row.model || '—'} · ${row.messages} ${t('sessions.messagesShort')} · ${n(row.tokens)} ${t('sessions.tokensShort')}`,
             ),
           ),
+          row.active
+            ? h('button', {
+                type: 'button',
+                className: 'tbx-btn',
+                disabled: stopping === row.id,
+                onClick: () => void cancel(row),
+              }, stopping === row.id ? t('command.stopping') : t('command.stop'))
+            : null,
           h('span', { className: 'tbx-muted' }, ago(row.updatedAt)),
         )),
       )
     }
 
-    function CommandPage({ t }) {
+    function CommandPage({ t, stop }) {
       return h(
         'div',
         { className: 'tbx-page' },
         h('div', { className: 'tbx-head' }, h('span', { className: 'tbx-title' }, t('command.title'))),
         h('div', { className: 'tbx-body' },
           h('div', { className: 'tbx-note' }, t('command.note')),
-          h(CommandTab, { t }),
+          h(CommandTab, { t, stop }),
         ),
       )
     }
@@ -602,6 +624,9 @@ window.__ModuleLoader__.load({
       'command.title': 'Command Center',
       'command.note': 'Every durable session with its model, message count, token total and last write. Read-only: open a session from the sidebar; live in-flight state stays there.',
       'command.empty': 'No sessions found.',
+      'command.stop': 'Stop',
+      'command.stopping': 'Stopping…',
+      'command.stopFailed': 'The session did not accept the stop request.',
       'sessions.status': 'Status',
       'sessions.title': 'Session',
       'sessions.workspace': 'Workspace',
@@ -652,6 +677,9 @@ window.__ModuleLoader__.load({
       'command.title': '指挥中心',
       'command.note': '每个持久会话的模型、消息数、token 总量与最近写入。只读：从左侧边栏打开会话。',
       'command.empty': '没有会话。',
+      'command.stop': '停止',
+      'command.stopping': '停止中…',
+      'command.stopFailed': '会话没有接受停止请求。',
       'sessions.status': '状态',
       'sessions.title': '会话',
       'sessions.workspace': '工作区',
@@ -694,6 +722,7 @@ window.__ModuleLoader__.load({
     function apply(ctx) {
       ctx.effect(() => ctx.locale.register(NS, { en, zh }), 'toolbox: dictionaries')
       const t = ctx.locale.bind(NS)
+      const stopSession = (sessionId) => ctx.remote.session.cancel({ sessionId })
       const rows = [
         { key: 'skills', order: 23, label: 'skills.title', icon: SkillsIcon },
         { key: 'providers', order: 24, label: 'providers.title', icon: ProvidersIcon },
@@ -708,7 +737,12 @@ window.__ModuleLoader__.load({
           ),
         )
       }
-      const pages = { skills: SkillsPage, providers: ProvidersPage, kanban: KanbanPage, command: CommandPage }
+      const pages = {
+        skills: SkillsPage,
+        providers: ProvidersPage,
+        kanban: KanbanPage,
+        command: (props) => h(CommandPage, { ...props, stop: stopSession }),
+      }
       for (const key of Object.keys(pages)) {
         ctx.slots.inject('main', () =>
           ctx.slots.register({ name: 'main', key, locale: NS }, pages[key]),
@@ -716,6 +750,6 @@ window.__ModuleLoader__.load({
       }
     }
 
-    return { inject: ['slots', 'locale'], apply }
+    return { inject: ['slots', 'locale', 'remote'], apply }
   },
 })

@@ -74,11 +74,11 @@ Four separate sidebar panels from one package.
 
 ![Provider health](docs/images/toolbox-providers.png)
 
-**Kanban** — three columns persisted at `~/.dsh/toolbox/board.json`: drag a card to any position (not just the column end), double-click to edit it in place, add and remove.
+**Kanban** — three columns persisted at `~/.dsh/toolbox/board.json`: drag a card to any position (not just the column end), double-click to edit it in place, add and remove. The agent gets a `kanban` tool with the same actions, so it can read and move the board too.
 
 ![Kanban board](docs/images/toolbox-kanban.png)
 
-**Command Center** — every durable session with its status, model, message count, token total and last write. Read-only for now: open a session from the sidebar, and live in-flight state stays there.
+**Command Center** — every durable session with its status, model, message count, token total and last write, plus a **Stop** button that cancels an active session's current turn. Opening a session still happens from the sidebar.
 
 ![Command Center](docs/images/command-center.png)
 

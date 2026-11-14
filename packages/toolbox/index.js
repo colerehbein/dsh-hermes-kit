@@ -11,6 +11,7 @@
  * Nothing here talks to a model. The session-log read is bounded to the newest
  * sessions and cached briefly, because each file is zstd-compressed JSONL.
  */
+import { defineTool } from '@deepseek-ai/dsh-tools'
 import { execFile } from 'node:child_process'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
@@ -29,8 +30,8 @@ const SESSIONS = path.join(HOME, '.dsh', 'sessions')
 const SESSION_LIMIT = 40
 const CACHE_MS = 60_000
 
-/** Required carrier service for the authenticated route registry. */
-export const inject = ['connection']
+/** Required carrier and tool registry. */
+export const inject = ['connection', 'tools']
 
 /** @type {null | { at: number, value: unknown }} */
 let providerCache = null
@@ -338,8 +339,88 @@ async function writeBoard(body) {
   return clean
 }
 
+/** Locate a column by id or case-insensitive title. */
+function columnOf(board, wanted) {
+  if (wanted === undefined || wanted === '') return board.columns[0]
+  const low = String(wanted).toLowerCase()
+  return board.columns.find((column) => column.id.toLowerCase() === low || column.title.toLowerCase() === low)
+}
+
+/** Locate a card by id or case-insensitive text. */
+function cardOf(board, wanted) {
+  const low = String(wanted).toLowerCase()
+  for (const column of board.columns) {
+    const card = column.cards.find((c) => c.id === wanted) || column.cards.find((c) => c.text.toLowerCase() === low)
+    if (card !== undefined) return { column, card }
+  }
+  return undefined
+}
+
+/** One-line board summary for the tool result. */
+function boardText(board) {
+  return board.columns.map((column) => `${column.title} (${column.cards.length}): ${column.cards.map((card) => card.text).join(' | ') || '—'}`).join('\n')
+}
+
 /** Register the panel's routes for this plugin's lifetime. */
 export function apply(ctx) {
+  ctx.tools.register(
+    defineTool({
+      name: 'kanban',
+      description:
+        'Read or change the shared kanban board shown in the Harness Kanban panel. Actions: list, add, move, remove. Cards are identified by their exact text or id; columns by id or title (Todo/Doing/Done).',
+      parameters: {
+        action: { type: 'string', description: 'One of: list, add, move, remove.', required: true },
+        column: { type: 'string', description: 'Target column id or title (Todo, Doing, Done). Defaults to Todo for add.' },
+        text: { type: 'string', description: 'Card text for add.' },
+        card: { type: 'string', description: 'Card text or id for move/remove.' },
+        position: { type: 'number', description: 'Zero-based position inside the target column for move; omit to append.' },
+      },
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            ok: { type: 'boolean', required: true },
+            message: { type: 'string', required: true },
+            board: { type: 'string', required: true },
+          },
+        },
+        render: (_args, value) => [{ type: 'text', text: `${value.message}\n\n${value.board}` }],
+      },
+      async execute(args) {
+        const board = await readBoard()
+        const action = String(args.action || 'list').toLowerCase()
+        let message = 'Board read.'
+        if (action === 'add') {
+          const text = String(args.text || '').trim()
+          if (text === '') throw new Error('kanban add requires text')
+          const column = columnOf(board, args.column)
+          if (column === undefined) throw new Error(`unknown column: ${args.column}`)
+          column.cards.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, text: text.slice(0, 500) })
+          message = `Added "${text}" to ${column.title}.`
+        } else if (action === 'move') {
+          const found = cardOf(board, args.card)
+          if (found === undefined) throw new Error(`card not found: ${args.card}`)
+          const target = columnOf(board, args.column)
+          if (target === undefined) throw new Error(`unknown column: ${args.column}`)
+          found.column.cards = found.column.cards.filter((card) => card.id !== found.card.id)
+          const at = args.position === undefined ? target.cards.length : Math.max(0, Math.min(Number(args.position), target.cards.length))
+          target.cards.splice(at, 0, found.card)
+          message = `Moved "${found.card.text}" to ${target.title} at ${at}.`
+        } else if (action === 'remove') {
+          const found = cardOf(board, args.card)
+          if (found === undefined) throw new Error(`card not found: ${args.card}`)
+          found.column.cards = found.column.cards.filter((card) => card.id !== found.card.id)
+          message = `Removed "${found.card.text}".`
+        } else if (action !== 'list') {
+          throw new Error(`unknown action: ${args.action}`)
+        }
+        if (action !== 'list') await writeBoard(board)
+        return { ok: true, message, board: boardText(board) }
+      },
+    }),
+  )
+
   ctx.effect(
     () =>
       ctx.connection.fetch.register({
