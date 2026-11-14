@@ -470,10 +470,14 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function CommandTab({ t, stop, open }) {
+    function CommandTab({ t, stop, open, send }) {
       const [data, setData] = useState(null)
       const [error, setError] = useState(null)
       const [stopping, setStopping] = useState(null)
+      const [composing, setComposing] = useState(null)
+      const [draft, setDraft] = useState('')
+      const [sending, setSending] = useState(null)
+      const [sent, setSent] = useState(null)
       const load = useCallback(() => {
         fetchJson('/api/toolbox/sessions').then(setData).catch((e) => setError(e.message))
       }, [])
@@ -525,18 +529,63 @@ window.__ModuleLoader__.load({
               }, stopping === row.id ? t('command.stopping') : t('command.stop'))
             : null,
           h('span', { className: 'tbx-muted' }, ago(row.updatedAt)),
+          h('button', {
+            type: 'button',
+            className: 'tbx-btn',
+            onClick: () => {
+              setComposing(composing === row.id ? null : row.id)
+              setDraft('')
+            },
+          }, t('command.message')),
+          composing === row.id
+            ? h('form', {
+                className: 'tbx-add',
+                style: { flexBasis: '100%', marginTop: 4 },
+                onSubmit: async (event) => {
+                  event.preventDefault()
+                  const text = draft.trim()
+                  if (text === '') return
+                  setSending(row.id)
+                  try {
+                    const result = await send(row.id, text, row.active)
+                    if (result?.ok === false) setError(result.error?.message || t('command.sendFailed'))
+                    else {
+                      setSent(row.id)
+                      setComposing(null)
+                      setDraft('')
+                      window.setTimeout(() => setSent(null), 2000)
+                    }
+                  } catch (e) {
+                    setError(e.message)
+                  } finally {
+                    setSending(null)
+                  }
+                },
+              },
+                h('input', {
+                  autoFocus: true,
+                  value: draft,
+                  placeholder: row.active ? t('command.steerPlaceholder') : t('command.queuePlaceholder'),
+                  'aria-label': t('command.message'),
+                  onChange: (event) => setDraft(event.target.value),
+                }),
+                h('button', { type: 'submit', className: 'tbx-btn', disabled: sending === row.id },
+                  sending === row.id ? t('command.sending') : t('command.send')),
+              )
+            : null,
+          sent === row.id ? h('span', { className: 'tbx-muted' }, t('command.sent')) : null,
         )),
       )
     }
 
-    function CommandPage({ t, stop, open }) {
+    function CommandPage({ t, stop, open, send }) {
       return h(
         'div',
         { className: 'tbx-page' },
         h('div', { className: 'tbx-head' }, h('span', { className: 'tbx-title' }, t('command.title'))),
         h('div', { className: 'tbx-body' },
           h('div', { className: 'tbx-note' }, t('command.note')),
-          h(CommandTab, { t, stop, open }),
+          h(CommandTab, { t, stop, open, send }),
         ),
       )
     }
@@ -649,6 +698,13 @@ window.__ModuleLoader__.load({
       'command.note': 'Every durable session with its model, message count, token total and last write. Open switches the main view to that session; Stop cancels an active turn.',
       'command.empty': 'No sessions found.',
       'command.open': 'Open',
+      'command.message': 'Message',
+      'command.send': 'Send',
+      'command.sending': 'Sending…',
+      'command.sent': 'Sent.',
+      'command.sendFailed': 'The session did not accept the message.',
+      'command.steerPlaceholder': 'Steer this running session…',
+      'command.queuePlaceholder': 'Queue a message for this session…',
       'command.stop': 'Stop',
       'command.stopping': 'Stopping…',
       'command.stopFailed': 'The session did not accept the stop request.',
@@ -710,6 +766,13 @@ window.__ModuleLoader__.load({
       'command.note': '每个持久会话的模型、消息数、token 总量与最近写入。打开会切换到该会话；停止会取消正在进行的回合。',
       'command.empty': '没有会话。',
       'command.open': '打开',
+      'command.message': '消息',
+      'command.send': '发送',
+      'command.sending': '发送中…',
+      'command.sent': '已发送。',
+      'command.sendFailed': '会话没有接受该消息。',
+      'command.steerPlaceholder': '引导这个正在运行的会话…',
+      'command.queuePlaceholder': '为这个会话排队一条消息…',
       'command.stop': '停止',
       'command.stopping': '停止中…',
       'command.stopFailed': '会话没有接受停止请求。',
@@ -763,6 +826,14 @@ window.__ModuleLoader__.load({
       ctx.effect(() => ctx.locale.register(NS, { en, zh }), 'toolbox: dictionaries')
       const t = ctx.locale.bind(NS)
       const stopSession = (sessionId) => ctx.remote.session.cancel({ sessionId })
+      const sendPrompt = (sessionId, text, active) =>
+        ctx.remote.session.prompt({
+          requestId: (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`),
+          sessionId,
+          mode: active ? 'steer' : 'queue',
+          content: [{ type: 'text', text }],
+          clientTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        })
       let openSession = () => {}
       ctx.inject(['uiWorkspace'], (scope) => {
         openSession = (sessionId) => scope.uiWorkspace.openSession(sessionId)
@@ -785,7 +856,7 @@ window.__ModuleLoader__.load({
         skills: SkillsPage,
         providers: ProvidersPage,
         kanban: KanbanPage,
-        command: (props) => h(CommandPage, { ...props, stop: stopSession, open: (id) => openSession(id) }),
+        command: (props) => h(CommandPage, { ...props, stop: stopSession, open: (id) => openSession(id), send: sendPrompt }),
       }
       for (const key of Object.keys(pages)) {
         ctx.slots.inject('main', () =>
@@ -794,6 +865,6 @@ window.__ModuleLoader__.load({
       }
     }
 
-    return { inject: ['slots', 'locale', 'remote'], apply }
+    return { inject: ['slots', 'locale', 'remote', 'remote.session'], apply }
   },
 })

@@ -102,7 +102,7 @@ Ten to fifteen concrete next steps for every surface shipped with the kit. Effor
 ## Command Center
 
 1. **Open** — click a row to focus that session. (L — client session-open API) ✅ shipped via `uiWorkspace.openSession`
-2. **Stop / steer** — `session/cancel` and queue edits with confirmation. (L) ◐ shipped: Stop wired to `session/cancel`; steer still open
+2. **Stop / steer** — `session/cancel` and queue edits with confirmation. (L) ✅ shipped: Stop via `session/cancel`, steer/queue via `session/prompt`
 3. **Live state** — running/awaiting from the client session store, not log mtime. (M)
 4. **Pending approvals** — show which sessions are blocked on a question. (M)
 5. **Subagent tree** — parent/child lineage instead of a flat list. (M)

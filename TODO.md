@@ -3,7 +3,7 @@
 ## Next
 
 - [ ] Session import from ChatGPT / Claude exports (needs a validated session-file writer; verify with a relaunch)
-- [ ] Command Center: steer (queue edit) still open; Open and Stop shipped
+- [x] Command Center: Open, Stop, Message (steer/queue)
 - [ ] Command Center actions: open, steer, stop (needs the live session projection API, not just log files)
 
 ## Later
@@ -22,6 +22,7 @@
 - [x] Provider mean response time
 - [x] Command Center Stop (session/cancel)
 - [x] Command Center Open (uiWorkspace.openSession)
+- [x] Command Center Message (session/prompt steer/queue)
 - [x] `kanban` agent tool (list/add/move/remove)
 - [x] Provider Test button (one-token ping)
 - [x] One-command installer and CLI kit (memory, checkpoints, curator, registry, skill audit)
