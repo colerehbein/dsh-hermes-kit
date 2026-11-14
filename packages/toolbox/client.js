@@ -247,42 +247,34 @@ window.__ModuleLoader__.load({
         data.rows.length === 0
           ? h('div', { className: 'tbx-empty' }, t('providers.empty'))
           : h(
-              'table',
-              { className: 'tbx-table' },
-              h('thead', null, h('tr', null,
-                h('th', null, t('providers.model')),
-                h('th', { className: 'num' }, t('providers.messages')),
-                h('th', { className: 'num' }, t('providers.input')),
-                h('th', { className: 'num' }, t('providers.output')),
-                h('th', { className: 'num' }, t('providers.cache')),
-                h('th', { className: 'num' }, t('providers.latency')),
-                h('th', { className: 'num' }, t('providers.errors')),
-                h('th', { className: 'num' }, t('providers.last')),
-                h('th', null, t('providers.test')),
-              )),
-              h('tbody', null, data.rows.map((row) => h('tr', { key: `${row.provider}::${row.model}` },
-                h('td', null,
-                  h('span', { className: 'tbx-badge' }, row.provider),
-                  ' ',
-                  h('span', { className: 'tbx-prov' }, row.model),
-                ),
-                h('td', { className: 'num' }, String(row.messages)),
-                h('td', { className: 'num' }, n(row.inputTokens)),
-                h('td', { className: 'num' }, n(row.outputTokens)),
-                h('td', { className: 'num' }, n(row.cacheReadTokens)),
-                h('td', { className: 'num' }, row.latencyMs === null || row.latencyMs === undefined ? '—' : row.latencyMs < 1000 ? `${row.latencyMs}ms` : `${(row.latencyMs / 1000).toFixed(1)}s`),
-                h('td', { className: 'num' }, String(row.errors)),
-                h('td', { className: 'num' }, ago(row.lastUsed)),
-                h('td', null, (() => {
-                  const key = `${row.provider}::${row.model}`
-                  const test = tests[key]
-                  if (test === undefined) {
-                    return h('button', { type: 'button', className: 'tbx-btn', onClick: () => void ping(row) }, t('providers.test'))
-                  }
-                  if (test.state === 'loading') return h('span', { className: 'tbx-muted' }, t('providers.testing'))
-                  return h('span', { className: 'tbx-muted', title: test.label }, test.state === 'ok' ? `✓ ${test.label}` : `✕ ${test.label.slice(0, 28)}`)
-                })()),
-              ))),
+              'div',
+              { className: 'tbx-list' },
+              data.rows.map((row) => {
+                const key = `${row.provider}::${row.model}`
+                const test = tests[key]
+                return h(
+                  'div',
+                  { className: 'tbx-row', key },
+                  h('span', { className: 'tbx-copy' },
+                    h('span', { className: 'tbx-name' },
+                      h('span', { className: 'tbx-badge' }, row.provider),
+                      ' ',
+                      h('span', { className: 'tbx-prov' }, row.model),
+                    ),
+                    h('span', { className: 'tbx-desc' },
+                      `${row.messages} ${t('sessions.messagesShort')} · ${n(row.inputTokens)}/${n(row.outputTokens)} ${t('providers.tokensShort')} · ${n(row.cacheReadTokens)} ${t('providers.cacheShort')} · ${row.errors} ${t('providers.errorsShort')} · ${ago(row.lastUsed)}`,
+                    ),
+                  ),
+                  h('span', { className: 'tbx-muted', title: t('providers.responseTitle') },
+                    row.latencyMs === null || row.latencyMs === undefined ? '—' : row.latencyMs < 1000 ? `${row.latencyMs}ms` : `${(row.latencyMs / 1000).toFixed(1)}s`,
+                  ),
+                  test === undefined
+                    ? h('button', { type: 'button', className: 'tbx-btn', onClick: () => void ping(row) }, t('providers.test'))
+                    : test.state === 'loading'
+                      ? h('span', { className: 'tbx-muted' }, t('providers.testing'))
+                      : h('span', { className: 'tbx-muted', title: test.label }, test.state === 'ok' ? `✓ ${test.label}` : `✕ ${test.label.slice(0, 24)}`),
+                )
+              }),
             ),
       )
     }
@@ -349,9 +341,6 @@ window.__ModuleLoader__.load({
       }
 
       const moveCard = (fromColumn, cardId, toColumn, toIndex) => {
-        if (fromColumn === toColumn && dropAt !== null && drag.current?.card === cardId) {
-          // same-column move: remove first, then clamp the target index
-        }
         const source = board.columns.find((c) => c.id === fromColumn)
         const moving = source?.cards.find((c) => c.id === cardId)
         if (moving === undefined) return
@@ -690,6 +679,10 @@ window.__ModuleLoader__.load({
       'providers.errors': 'Errors',
       'providers.last': 'Last',
       'providers.test': 'Test',
+      'providers.tokensShort': 'tokens',
+      'providers.cacheShort': 'cache',
+      'providers.errorsShort': 'errors',
+      'providers.responseTitle': 'Mean request to message',
       'providers.testing': 'Testing…',
       'providers.testFailed': 'failed',
       'providers.empty': 'No model calls recorded yet.',
@@ -746,6 +739,10 @@ window.__ModuleLoader__.load({
       'providers.errors': '错误',
       'providers.last': '最近',
       'providers.test': '测试',
+      'providers.tokensShort': 'token',
+      'providers.cacheShort': '缓存',
+      'providers.errorsShort': '错误',
+      'providers.responseTitle': '请求到消息的平均耗时',
       'providers.testing': '测试中…',
       'providers.testFailed': '失败',
       'providers.empty': '还没有模型调用记录。',
