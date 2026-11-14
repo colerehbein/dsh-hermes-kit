@@ -48,12 +48,13 @@ Three skills (`dsh-memory`, `dsh-checkpoints`, `dsh-curator`) ship with the CLIs
 
 ![Edit models](docs/images/edit-models.png)
 
-- **One panel, not drilled menus.** Search matches model names by ordered subsequence and highlights the hit; providers stay grouped with live counts.
+- **One panel, not drilled menus.** Search matches model names by ordered subsequence and highlights the hit; providers are uppercase groups with a count badge, and the provider holding the current model carries a left accent bar. Rows are single-line — star, name, chevron — with the description on the row's tooltip.
 - **Favorites** sit above the providers, starred with the star on any row (or `Shift+Enter`). A favorite is exempt from the visibility filter and is never listed twice.
 - **Provider groups collapse** and remember it.
-- **Reasoning levels** are one click from the row: the chip opens `default / off / low / medium / high` for that exact model, and picking one commits model + effort.
+- **Reasoning levels** are one click from the row: the chevron opens `default / off / low / medium / high` for that exact model, and picking one commits model + effort.
 - **Edit models…** opens a visibility editor: a switch per model, a provider master switch with an indeterminate state, `on/total` counters, a filter, and *Reset to defaults*.
 - **Visibility rules** follow Hermes: never-curated means everything; hiding a provider's last model records a hide-all sentinel; models that arrive later default to visible; `Reset` clears both keys.
+- **Footer rows**: *Refresh models* re-reads the catalog; *Edit models…* opens the visibility editor.
 - **Keyboard**: `↑`/`↓` move the highlight, `Enter` selects, `Shift+Enter` stars, `Esc` leaves the editor or closes. Focus stays in the search field.
 
 The picker shadows the stock `conversation.input.model` occupant at `priority: -1` (a single slot renders the lowest priority and requires distinct priorities) and reuses the same per-session `modelDirectories` service, so model switches keep DSH's durable behaviour.

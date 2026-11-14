@@ -15,6 +15,8 @@ Source: `apps/desktop/src/app/shell/model-catalog-menu.tsx` (Hermes desktop, ~1,
 | Row commits; hover submenu edits reasoning / fast without selecting | Reasoning levels are an inline strip toggled by the row chip; picking a level commits model + effort. |
 | Current model check, pending spinner, limited-model reset badges | Check and pending carried over. Reset badges need provider limit metadata DSH's catalog does not expose. |
 | Pricing, context window, provenance, usage tags, MoA presets, local downloads, custom-slug entry | Omitted: `ModelCatalogModel` in DSH carries only `id`, `name`, `description`, `reasoning`, `badge`. |
+| Uppercase provider rows with a right-side badge and a left accent on the active provider | Same shape. The badge is the model count: DSH's catalog exposes no account count and no "limited until" rate-limit metadata, so those two Hermes badges have no data behind them here. |
+| Footer rows: Refresh models / Add custom model / Edit models | Refresh and Edit models shipped. Add custom model has no picker-side write path — models are configured in **Settings → Models** — and MoA presets have no DSH equivalent at all. |
 
 ## Edit models
 

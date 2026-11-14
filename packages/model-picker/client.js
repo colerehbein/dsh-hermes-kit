@@ -51,11 +51,12 @@ window.__ModuleLoader__.load({
 .dsh-hmp-clear:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .dsh-hmp-list{min-height:0;overflow:hidden auto;padding-bottom:2px}
 .dsh-hmp-section{padding:7px 8px 3px;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
-.dsh-hmp-groupHead{display:flex;align-items:center;gap:4px;width:100%;box-sizing:border-box;border:none;background:0 0;border-radius:var(--dsw-radius-sm);padding:5px 7px;margin-top:3px;cursor:pointer;color:var(--dsw-alias-label-tertiary);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;text-align:left}
+.dsh-hmp-groupHead{display:flex;align-items:center;gap:4px;width:100%;box-sizing:border-box;border:none;border-left:2px solid transparent;background:0 0;border-radius:0 var(--dsw-radius-sm) var(--dsw-radius-sm) 0;padding:6px 7px 6px 6px;margin-top:2px;cursor:pointer;color:var(--dsw-alias-label-tertiary);font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;text-align:left}
+.dsh-hmp-groupHeadActive{border-left-color:var(--dsw-alias-state-business-primary);background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
 .dsh-hmp-groupHead:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .dsh-hmp-groupHead:focus-visible{outline:2px solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline-offset:-2px}
 .dsh-hmp-count{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-caption);font-weight:400;letter-spacing:0}
-.dsh-hmp-row{display:flex;align-items:center;gap:4px;width:100%;box-sizing:border-box;min-height:34px;border:none;background:0 0;border-radius:var(--dsw-radius-md);padding:4px 7px 4px 3px;cursor:pointer;text-align:left;color:inherit;font:inherit}
+.dsh-hmp-row{display:flex;align-items:center;gap:4px;width:100%;box-sizing:border-box;min-height:32px;border:none;background:0 0;border-radius:var(--dsw-radius-md);padding:3px 6px 3px 2px;cursor:pointer;text-align:left;color:inherit;font:inherit}
 .dsh-hmp-row:hover,.dsh-hmp-rowActive{background:var(--dsw-alias-interactive-bg-hover)}
 .dsh-hmp-row:focus-visible{outline:2px solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline-offset:-2px}
 .dsh-hmp-star{flex:none;width:24px;height:24px;border:none;border-radius:var(--dsw-radius-sm);background:0 0;color:var(--dsw-alias-label-caption);opacity:.45;cursor:pointer;display:grid;place-items:center;padding:0}
@@ -67,6 +68,13 @@ window.__ModuleLoader__.load({
 .dsh-hmp-nameText{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .dsh-hmp-hit{color:var(--dsw-alias-state-business-primary);font-weight:500}
 .dsh-hmp-badge{flex:none;border:1px solid var(--dsw-alias-border-l1);border-radius:999px;padding:0 5px;font-size:10px;line-height:14px;color:var(--dsw-alias-label-tertiary)}
+.dsh-hmp-rowChev{flex:none;width:22px;height:22px;border:none;background:0 0;padding:0;border-radius:var(--dsw-radius-sm);display:grid;place-items:center;color:var(--dsw-alias-label-caption);opacity:.7;cursor:pointer}
+.dsh-hmp-rowChev:hover{background:var(--dsw-alias-interactive-bg-hover);opacity:1}
+.dsh-hmp-row:hover .dsh-hmp-rowChev{opacity:1;color:var(--dsw-alias-label-secondary)}
+.dsh-hmp-footRow{display:flex;align-items:center;gap:8px;width:100%;border:none;background:0 0;border-radius:var(--dsw-radius-sm);padding:6px 8px;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;line-height:18px;cursor:pointer;text-align:left}
+.dsh-hmp-footRow:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
+.dsh-hmp-footRow:focus-visible{outline:2px solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline-offset:-2px}
+.dsh-hmp-footIcon{flex:none;width:14px;height:14px;display:grid;place-items:center;color:var(--dsw-alias-label-caption)}
 .dsh-hmp-desc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:15px;color:var(--dsw-alias-label-caption)}
 .dsh-hmp-effortChip{flex:none;border:1px solid var(--dsw-alias-border-l1);border-radius:999px;background:0 0;color:var(--dsw-alias-label-tertiary);font-size:10px;line-height:16px;padding:0 6px;cursor:pointer}
 .dsh-hmp-effortChip:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}
@@ -342,6 +350,34 @@ window.__ModuleLoader__.load({
           strokeWidth: 1.6,
           strokeLinecap: 'round',
           strokeLinejoin: 'round',
+        }),
+      )
+
+    const RefreshIcon = () =>
+      h(
+        'svg',
+        { width: 14, height: 14, viewBox: '0 0 16 16', 'aria-hidden': 'true' },
+        h('path', {
+          d: 'M13 8a5 5 0 1 1-1.6-3.7M13 2.6V6H9.6',
+          fill: 'none',
+          stroke: 'currentColor',
+          strokeWidth: 1.4,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+        }),
+      )
+
+    const GearIcon = () =>
+      h(
+        'svg',
+        { width: 14, height: 14, viewBox: '0 0 16 16', 'aria-hidden': 'true' },
+        h('circle', { cx: 8, cy: 8, r: 2.3, fill: 'none', stroke: 'currentColor', strokeWidth: 1.4 }),
+        h('path', {
+          d: 'M8 1.8v1.6M8 12.6v1.6M1.8 8h1.6M12.6 8h1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M12.4 3.6l-1.1 1.1M4.7 11.3l-1.1 1.1',
+          fill: 'none',
+          stroke: 'currentColor',
+          strokeWidth: 1.3,
+          strokeLinecap: 'round',
         }),
       )
 
@@ -780,13 +816,15 @@ window.__ModuleLoader__.load({
                   'button',
                   {
                     type: 'button',
-                    className: 'dsh-hmp-groupHead',
+                    className:
+                      'dsh-hmp-groupHead' +
+                      (state.current !== undefined && entry.group.id === state.current.provider ? ' dsh-hmp-groupHeadActive' : ''),
                     'aria-expanded': !(normalized === '' && collapsed.includes(entry.group.id)),
                     onClick: () => toggleCollapsed(entry.group.id),
                   },
                   ChevronIcon({ open: !(normalized === '' && collapsed.includes(entry.group.id)) }),
                   h('span', null, providerName(entry.group)),
-                  h('span', { className: 'dsh-hmp-count' }, String(entry.models.length)),
+                  h('span', { className: 'dsh-hmp-badge' }, String(entry.models.length)),
                 ),
                 normalized === '' && collapsed.includes(entry.group.id)
                   ? null
@@ -805,34 +843,31 @@ window.__ModuleLoader__.load({
             'div',
             { className: 'dsh-hmp-foot' },
             h(
-              'div',
-              { className: 'dsh-hmp-hints' },
-              h('span', { className: 'dsh-hmp-kbd' }, '↑↓'),
-              h('span', null, t('hint.move')),
-              h('span', { className: 'dsh-hmp-kbd' }, 'Enter'),
-              h('span', null, t('hint.select')),
-              h('span', { className: 'dsh-hmp-kbd' }, '⇧Enter'),
-              h('span', null, t('hint.star')),
+              'button',
+              {
+                type: 'button',
+                className: 'dsh-hmp-footRow',
+                onMouseDown: (event) => event.preventDefault(),
+                onClick: () => load(),
+              },
+              h('span', { className: 'dsh-hmp-footIcon' }, RefreshIcon()),
+              t('foot.refresh'),
             ),
             h(
-              'div',
-              { className: 'dsh-hmp-footAction' },
-              h(
-                'button',
-                {
-                  type: 'button',
-                  className: 'dsh-hmp-footBtn',
-                  style: { whiteSpace: 'nowrap' },
-                  onMouseDown: (event) => event.preventDefault(),
-                  onClick: () => {
-                    setMode('edit')
-                    setQuery('')
-                    setEffortFor(null)
-                    window.setTimeout(() => editInputRef.current?.focus(), 0)
-                  },
+              'button',
+              {
+                type: 'button',
+                className: 'dsh-hmp-footRow',
+                onMouseDown: (event) => event.preventDefault(),
+                onClick: () => {
+                  setMode('edit')
+                  setQuery('')
+                  setEffortFor(null)
+                  window.setTimeout(() => editInputRef.current?.focus(), 0)
                 },
-                t('edit.open'),
-              ),
+              },
+              h('span', { className: 'dsh-hmp-footIcon' }, GearIcon()),
+              t('edit.open'),
             ),
           ),
           mode === 'edit'
@@ -1022,6 +1057,7 @@ window.__ModuleLoader__.load({
             {
               className: 'dsh-hmp-row' + (activeKey === key ? ' dsh-hmp-rowActive' : ''),
               'data-active': activeKey === key ? 'true' : undefined,
+              title: model.description,
               role: 'option',
               'aria-selected': current,
               onMouseEnter: () => setActiveKey(key),
@@ -1051,9 +1087,6 @@ window.__ModuleLoader__.load({
                 Highlighted({ hits: match.hits, text: model.name || model.id }),
                 badgeText === undefined ? null : h('span', { className: 'dsh-hmp-badge' }, badgeText),
               ),
-              model.description === undefined || current === false
-                ? null
-                : h('span', { className: 'dsh-hmp-desc' }, model.description),
             ),
             caption === undefined
               ? null
@@ -1061,22 +1094,21 @@ window.__ModuleLoader__.load({
                   'button',
                   {
                     type: 'button',
-                    className: 'dsh-hmp-effortChip',
+                    className: 'dsh-hmp-rowChev',
                     'aria-label': t('effort.choose', { model: model.name || model.id }),
+                    'aria-expanded': effortOpen,
+                    title: caption,
                     onClick: (event) => {
                       event.preventDefault()
                       event.stopPropagation()
                       setEffortFor(effortOpen ? null : key)
                     },
-                    onKeyDown: (event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        setEffortFor(effortOpen ? null : key)
-                      }
-                    },
                   },
-                  caption,
+                  h(
+                    'span',
+                    { style: { display: 'grid', transform: effortOpen ? 'rotate(90deg)' : 'rotate(-90deg)' } },
+                    ChevronIcon({ open: false }),
+                  ),
                 ),
             pendingKey === key
               ? h('span', { className: 'dsh-hmp-check' }, '…')
@@ -1137,6 +1169,7 @@ window.__ModuleLoader__.load({
       'hint.select': 'select',
       'hint.star': 'favorite',
       'edit.open': 'Edit models…',
+      'foot.refresh': 'Refresh models',
       'edit.title': 'Edit models',
       'edit.search': 'Filter models…',
       'edit.count': '{shown} of {total} shown',
@@ -1168,6 +1201,7 @@ window.__ModuleLoader__.load({
       'hint.select': '选择',
       'hint.star': '收藏',
       'edit.open': '编辑模型…',
+      'foot.refresh': '刷新模型',
       'edit.title': '编辑模型',
       'edit.search': '筛选模型…',
       'edit.count': '显示 {shown} / {total}',
