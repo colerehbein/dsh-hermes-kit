@@ -87,10 +87,14 @@ async function skillsPayload() {
   const [active, retired] = await Promise.all([readDir(SKILLS, true), readDir(RETIRED, false)])
   const loads = stats.skill_loads || {}
   const lastSeen = stats.skill_last_seen || {}
-  const rows = [...active, ...retired].map((row) => ({
+  const all = [...active, ...retired]
+  const byName = new Map()
+  for (const row of all) byName.set(row.name, (byName.get(row.name) || 0) + 1)
+  const rows = all.map((row) => ({
     ...row,
     loads: loads[row.name] || 0,
     lastSeen: lastSeen[row.name] || null,
+    copies: byName.get(row.name) || 1,
   }))
   rows.sort((a, b) => Number(b.enabled) - Number(a.enabled) || b.loads - a.loads || a.name.localeCompare(b.name))
   return {
@@ -160,7 +164,7 @@ async function providersPayload() {
       }
       if (event.type === 'request/header') {
         const config = event.data?.header?.config
-        if (config?.provider && config?.model) last = config
+        if (config?.provider && config?.model) last = { provider: config.provider, model: config.model, time: event.time }
       } else if (event.type === 'assistant/message') {
         const source = event.data?.message?.source
         if (source?.kind !== 'model' || !source.provider || !source.model) continue
@@ -186,6 +190,14 @@ async function providersPayload() {
           row.totalTokens += usage.totalTokens || 0
         }
         row.lastUsed = Math.max(row.lastUsed, event.time || 0)
+        if (last !== null && last.time !== undefined && event.time !== undefined) {
+          const delta = event.time - last.time
+          if (delta > 0 && delta < 15 * 60_000) {
+            row.latencySum = (row.latencySum || 0) + delta
+            row.latencySamples = (row.latencySamples || 0) + 1
+            last = { ...last, time: undefined }
+          }
+        }
         rows.set(key, row)
         last = { provider: source.provider, model: source.model }
       } else if (event.type === 'assistant/attempt') {
@@ -202,7 +214,12 @@ async function providersPayload() {
     }
   }
   const value = {
-    rows: [...rows.values()].sort((a, b) => b.totalTokens - a.totalTokens || b.messages - a.messages),
+    rows: [...rows.values()]
+      .map((row) => ({
+        ...row,
+        latencyMs: row.latencySamples ? Math.round(row.latencySum / row.latencySamples) : null,
+      }))
+      .sort((a, b) => b.totalTokens - a.totalTokens || b.messages - a.messages),
     scanned,
     at: Date.now(),
   }

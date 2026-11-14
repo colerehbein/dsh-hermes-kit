@@ -66,15 +66,15 @@ Four separate sidebar panels from one package.
 
 ![The three sidebar entries](docs/images/sidebar-entries.png)
 
-**Skills** — every skill with its curator load count and last-seen time, a filter, and a switch. Disabling moves the skill to `~/.dsh/skills-retired` and back, because a leading dot does not hide a skill from DSH's catalogue.
+**Skills** — every skill with its curator load count and last-seen time, sortable by loads/recent/name, a "never fired" filter, duplicate-name badges, and a switch. Disabling moves the skill to `~/.dsh/skills-retired` and back, because a leading dot does not hide a skill from DSH's catalogue.
 
 ![Skills manager](docs/images/toolbox-skills.png)
 
-**Providers** — per provider/model totals from the newest 40 session logs: messages, input/output/cache tokens, errors, last used.
+**Providers** — per provider/model totals from the newest 40 session logs: messages, input/output/cache tokens, mean response time, errors, last used.
 
 ![Provider health](docs/images/toolbox-providers.png)
 
-**Kanban** — three columns persisted at `~/.dsh/toolbox/board.json`, drag-and-drop, add and remove.
+**Kanban** — three columns persisted at `~/.dsh/toolbox/board.json`: drag a card to any position (not just the column end), double-click to edit it in place, add and remove.
 
 ![Kanban board](docs/images/toolbox-kanban.png)
 

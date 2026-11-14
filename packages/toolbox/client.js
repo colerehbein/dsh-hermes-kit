@@ -71,6 +71,11 @@ window.__ModuleLoader__.load({
 .tbx-error{color:var(--dsw-alias-state-error-primary);font-size:12px;padding:6px 0}
 .tbx-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-label-caption);margin-right:6px;vertical-align:middle}
 .tbx-dotOn{background:var(--dsw-alias-state-success-primary,var(--dsw-alias-state-business-primary))}
+.tbx-sort{border:1px solid var(--dsw-alias-border-l1);border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font:inherit;font-size:11px;padding:3px 6px}
+.tbx-check{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.tbx-copies{flex:none;border:1px solid var(--dsw-alias-border-l2);border-radius:999px;padding:0 5px;font-size:10px;line-height:15px;color:var(--dsw-alias-label-secondary)}
+.tbx-drop{height:2px;margin:2px 0;border-radius:2px;background:var(--dsw-alias-state-business-primary)}
+.tbx-editCard{border:1px solid var(--dsw-alias-state-business-primary);border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-bg-layer-2);padding:5px 7px;font-size:12px;width:100%;box-sizing:border-box;color:inherit;font-family:inherit;resize:vertical;min-height:34px;outline:none}
 .tbx-badge{display:inline-block;border:1px solid var(--dsw-alias-border-l1);border-radius:999px;padding:0 6px;font-size:10px;color:var(--dsw-alias-label-tertiary);line-height:16px}
 `
     if (typeof document !== 'undefined' && document.querySelector('style[data-plugin-css=' + JSON.stringify(CSS_TAG) + ']') === null) {
@@ -118,6 +123,8 @@ window.__ModuleLoader__.load({
       const [data, setData] = useState(null)
       const [error, setError] = useState(null)
       const [query, setQuery] = useState('')
+      const [sort, setSort] = useState('loads')
+      const [neverFired, setNeverFired] = useState(false)
       const [busy, setBusy] = useState(null)
       const load = useCallback(() => {
         fetchJson('/api/toolbox/skills').then(setData).catch((e) => setError(e.message))
@@ -127,8 +134,16 @@ window.__ModuleLoader__.load({
       const rows = useMemo(() => {
         const all = data?.skills || []
         const q = query.trim().toLowerCase()
-        return q === '' ? all : all.filter((row) => `${row.name} ${row.description}`.toLowerCase().includes(q))
-      }, [data, query])
+        const filtered = all.filter((row) => {
+          if (neverFired && (row.loads > 0 || !row.enabled)) return false
+          return q === '' || `${row.name} ${row.description}`.toLowerCase().includes(q)
+        })
+        const sorted = filtered.slice()
+        if (sort === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name))
+        else if (sort === 'recent') sorted.sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0))
+        else sorted.sort((a, b) => b.loads - a.loads || a.name.localeCompare(b.name))
+        return sorted
+      }, [data, query, sort, neverFired])
 
       const toggle = async (row) => {
         setBusy(row.dir)
@@ -161,6 +176,20 @@ window.__ModuleLoader__.load({
             onChange: (e) => setQuery(e.target.value),
             'aria-label': t('skills.search'),
           }),
+          h('select', {
+            className: 'tbx-sort',
+            value: sort,
+            'aria-label': t('skills.sort'),
+            onChange: (e) => setSort(e.target.value),
+          },
+            h('option', { value: 'loads' }, t('skills.sortLoads')),
+            h('option', { value: 'recent' }, t('skills.sortRecent')),
+            h('option', { value: 'name' }, t('skills.sortName')),
+          ),
+          h('label', { className: 'tbx-check' },
+            h('input', { type: 'checkbox', checked: neverFired, onChange: (e) => setNeverFired(e.target.checked) }),
+            t('skills.neverFired'),
+          ),
           data && h('span', { className: 'tbx-muted' }, t('skills.totals', { enabled: data.totals.enabled, all: data.totals.all, retired: data.totals.retired })),
         ),
         h('div', { className: 'tbx-note' }, t('skills.note')),
@@ -172,6 +201,7 @@ window.__ModuleLoader__.load({
             'div',
             { className: 'tbx-row' + (row.enabled ? '' : ' tbx-rowOff'), key: row.dir },
             h('span', { className: 'tbx-name', title: row.name }, row.name),
+            row.copies > 1 ? h('span', { className: 'tbx-copies', title: t('skills.duplicates', { count: row.copies }) }, `×${row.copies}`) : null,
             h('span', { className: 'tbx-desc', title: row.description }, row.description),
             h('span', { className: 'tbx-load', title: t('skills.loads') }, String(row.loads)),
             h('span', { className: 'tbx-muted' }, ago(row.lastSeen)),
@@ -205,6 +235,7 @@ window.__ModuleLoader__.load({
                 h('th', { className: 'num' }, t('providers.input')),
                 h('th', { className: 'num' }, t('providers.output')),
                 h('th', { className: 'num' }, t('providers.cache')),
+                h('th', { className: 'num' }, t('providers.latency')),
                 h('th', { className: 'num' }, t('providers.errors')),
                 h('th', { className: 'num' }, t('providers.last')),
               )),
@@ -218,6 +249,7 @@ window.__ModuleLoader__.load({
                 h('td', { className: 'num' }, n(row.inputTokens)),
                 h('td', { className: 'num' }, n(row.outputTokens)),
                 h('td', { className: 'num' }, n(row.cacheReadTokens)),
+                h('td', { className: 'num' }, row.latencyMs === null || row.latencyMs === undefined ? '—' : row.latencyMs < 1000 ? `${row.latencyMs}ms` : `${(row.latencyMs / 1000).toFixed(1)}s`),
                 h('td', { className: 'num' }, String(row.errors)),
                 h('td', { className: 'num' }, ago(row.lastUsed)),
               ))),
@@ -229,7 +261,9 @@ window.__ModuleLoader__.load({
       const [board, setBoard] = useState(null)
       const [error, setError] = useState(null)
       const [saved, setSaved] = useState(false)
-      const [over, setOver] = useState(null)
+      const [dropAt, setDropAt] = useState(null)
+      const [editing, setEditing] = useState(null)
+      const [draft, setDraft] = useState('')
       const drag = useRef(null)
       const saveTimer = useRef(null)
 
@@ -273,21 +307,68 @@ window.__ModuleLoader__.load({
         })
       }
 
-      const drop = (columnId) => {
-        const payload = drag.current
-        drag.current = null
-        setOver(null)
-        if (payload === null || payload.column === columnId) return
-        const moving = board.columns.find((c) => c.id === payload.column)?.cards.find((c) => c.id === payload.card)
-        if (moving === undefined) return
+      const renameCard = (columnId, cardId, text) => {
+        const trimmed = text.trim()
+        if (trimmed === '') return
         persist({
           ...board,
-          columns: board.columns.map((column) => column.id === payload.column
-            ? { ...column, cards: column.cards.filter((card) => card.id !== payload.card) }
-            : column.id === columnId
-              ? { ...column, cards: [...column.cards, moving] }
-              : column),
+          columns: board.columns.map((column) => column.id === columnId
+            ? { ...column, cards: column.cards.map((card) => (card.id === cardId ? { ...card, text: trimmed } : card)) }
+            : column),
         })
+      }
+
+      const moveCard = (fromColumn, cardId, toColumn, toIndex) => {
+        if (fromColumn === toColumn && dropAt !== null && drag.current?.card === cardId) {
+          // same-column move: remove first, then clamp the target index
+        }
+        const source = board.columns.find((c) => c.id === fromColumn)
+        const moving = source?.cards.find((c) => c.id === cardId)
+        if (moving === undefined) return
+        const without = board.columns.map((column) => column.id === fromColumn
+          ? { ...column, cards: column.cards.filter((card) => card.id !== cardId) }
+          : column)
+        persist({
+          ...board,
+          columns: without.map((column) => {
+            if (column.id !== toColumn) return column
+            const at = Math.max(0, Math.min(toIndex, column.cards.length))
+            return { ...column, cards: [...column.cards.slice(0, at), moving, ...column.cards.slice(at)] }
+          }),
+        })
+      }
+
+      const onColumnDragOver = (event, columnId, cardCount) => {
+        event.preventDefault()
+        if (dropAt !== null && dropAt.column === columnId && dropAt.index === cardCount) return
+        setDropAt({ column: columnId, index: cardCount })
+      }
+
+      const onCardDragOver = (event, columnId, index) => {
+        event.preventDefault()
+        event.stopPropagation()
+        if (dropAt !== null && dropAt.column === columnId && dropAt.index === index) return
+        setDropAt({ column: columnId, index })
+      }
+
+      const onDrop = (event, columnId) => {
+        event.preventDefault()
+        const source = drag.current
+        const target = dropAt
+        drag.current = null
+        setDropAt(null)
+        if (source === null) return
+        const index = target !== null && target.column === columnId ? target.index : Number.MAX_SAFE_INTEGER
+        if (source.column === columnId) {
+          const column = board.columns.find((c) => c.id === columnId)
+          const from = column.cards.findIndex((c) => c.id === source.card)
+          if (from < 0) return
+          const adjusted = from < index ? index - 1 : index
+          if (adjusted === from) return
+          moveCard(columnId, source.card, columnId, adjusted)
+        } else {
+          moveCard(source.column, source.card, columnId, index)
+        }
       }
 
       return h(
@@ -300,32 +381,70 @@ window.__ModuleLoader__.load({
           board.columns.map((column) => h(
             'div',
             {
-              className: 'tbx-col' + (over === column.id ? ' tbx-colOver' : ''),
+              className: 'tbx-col' + (dropAt !== null && dropAt.column === column.id ? ' tbx-colOver' : ''),
               key: column.id,
-              onDragOver: (event) => { event.preventDefault(); setOver(column.id) },
-              onDragLeave: () => setOver(null),
-              onDrop: () => drop(column.id),
+              onDragOver: (event) => onColumnDragOver(event, column.id, column.cards.length),
+              onDragLeave: (event) => {
+                if (event.currentTarget.contains(event.relatedTarget)) return
+                setDropAt(null)
+              },
+              onDrop: (event) => onDrop(event, column.id),
             },
             h('div', { className: 'tbx-colHead' },
               h('span', null, column.title),
               h('span', null, String(column.cards.length)),
             ),
-            column.cards.map((card) => h(
-              'div',
-              {
-                className: 'tbx-card',
-                key: card.id,
-                draggable: true,
-                onDragStart: () => { drag.current = { column: column.id, card: card.id } },
-              },
-              h('span', { className: 'tbx-cardText' }, card.text),
-              h('button', {
-                type: 'button',
-                className: 'tbx-cardX',
-                'aria-label': t('board.remove', { text: card.text }),
-                onClick: () => removeCard(column.id, card.id),
-              }, '×'),
+            column.cards.map((card, index) => h(
+              React.Fragment,
+              { key: card.id },
+              dropAt !== null && dropAt.column === column.id && dropAt.index === index
+                ? h('div', { className: 'tbx-drop' })
+                : null,
+              editing === card.id
+                ? h('textarea', {
+                    className: 'tbx-editCard',
+                    autoFocus: true,
+                    value: draft,
+                    onChange: (event) => setDraft(event.target.value),
+                    onKeyDown: (event) => {
+                      if (event.key === 'Escape') {
+                        event.preventDefault()
+                        setEditing(null)
+                      } else if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault()
+                        renameCard(column.id, card.id, draft)
+                        setEditing(null)
+                      }
+                    },
+                    onBlur: () => {
+                      renameCard(column.id, card.id, draft)
+                      setEditing(null)
+                    },
+                  })
+                : h(
+                    'div',
+                    {
+                      className: 'tbx-card',
+                      draggable: true,
+                      onDragStart: () => { drag.current = { column: column.id, card: card.id } },
+                      onDragOver: (event) => onCardDragOver(event, column.id, index),
+                      onDoubleClick: () => {
+                        setDraft(card.text)
+                        setEditing(card.id)
+                      },
+                    },
+                    h('span', { className: 'tbx-cardText' }, card.text),
+                    h('button', {
+                      type: 'button',
+                      className: 'tbx-cardX',
+                      'aria-label': t('board.remove', { text: card.text }),
+                      onClick: () => removeCard(column.id, card.id),
+                    }, '×'),
+                  ),
             )),
+            dropAt !== null && dropAt.column === column.id && dropAt.index >= column.cards.length
+              ? h('div', { className: 'tbx-drop' })
+              : null,
             h(AddCard, { onAdd: (text) => addCard(column.id, text), label: t('board.add') }),
           )),
         ),
@@ -498,6 +617,12 @@ window.__ModuleLoader__.load({
       'skills.totals': '{enabled} enabled · {all} total · {retired} retired',
       'skills.note': 'Loads come from the curator. Disabling moves a skill to ~/.dsh/skills-retired.',
       'skills.loads': 'Skill loads',
+      'skills.sort': 'Sort skills',
+      'skills.sortLoads': 'Most loaded',
+      'skills.sortRecent': 'Recently used',
+      'skills.sortName': 'Name',
+      'skills.neverFired': 'Never fired',
+      'skills.duplicates': '{count} copies share this name',
       'skills.toggle': 'Enable {name}',
       'skills.empty': 'No skills match.',
       'providers.note': 'From the newest {scanned} session logs. Tokens are reported by the provider.',
@@ -506,6 +631,7 @@ window.__ModuleLoader__.load({
       'providers.input': 'Input',
       'providers.output': 'Output',
       'providers.cache': 'Cache read',
+      'providers.latency': 'Response',
       'providers.errors': 'Errors',
       'providers.last': 'Last',
       'providers.empty': 'No model calls recorded yet.',
@@ -541,6 +667,12 @@ window.__ModuleLoader__.load({
       'skills.totals': '{enabled} 启用 · {all} 总数 · {retired} 已停用',
       'skills.note': '加载次数来自 curator。停用会把技能移动到 ~/.dsh/skills-retired。',
       'skills.loads': '加载次数',
+      'skills.sort': '排序',
+      'skills.sortLoads': '加载最多',
+      'skills.sortRecent': '最近使用',
+      'skills.sortName': '名称',
+      'skills.neverFired': '从未触发',
+      'skills.duplicates': '{count} 个同名副本',
       'skills.toggle': '启用 {name}',
       'skills.empty': '没有匹配的技能。',
       'providers.note': '来自最新 {scanned} 个会话日志。token 由提供商上报。',
@@ -549,6 +681,7 @@ window.__ModuleLoader__.load({
       'providers.input': '输入',
       'providers.output': '输出',
       'providers.cache': '缓存读取',
+      'providers.latency': '响应',
       'providers.errors': '错误',
       'providers.last': '最近',
       'providers.empty': '还没有模型调用记录。',

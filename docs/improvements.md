@@ -53,8 +53,8 @@ Ten to fifteen concrete next steps for every surface shipped with the kit. Effor
 
 1. **Tools half** — list the tool catalogue next to skills, with its own enable state. (M)
 2. **Sorting** — loads, last used, size, name. (S)
-3. **Never-fired filter** — the curator's dead-list as a toggle. (S)
-4. **Duplicate groups** — `name--hash` copies collapsed into one row with merge/retire actions. (M)
+3. **Never-fired filter** — the curator's dead-list as a toggle. (S) ✅ shipped
+4. **Duplicate groups** — `name--hash` copies collapsed into one row with merge/retire actions. (M) ◐ shipped: copies badge; merge still open
 5. **Preview** — open the skill body in the panel without leaving it. (S)
 6. **Inline frontmatter edit** — name/description with validation. (M)
 7. **Error rate per skill** — join tool errors to the turns a skill loaded in. (M)
@@ -68,7 +68,7 @@ Ten to fifteen concrete next steps for every surface shipped with the kit. Effor
 
 ## Provider health
 
-1. **Latency** — p50/p95 from request time to first chunk. (M)
+1. **Latency** — p50/p95 from request time to first chunk. (M) ◐ shipped: mean request→message time ("Response"); TTFT still open
 2. **Error breakdown** — counts by code with the last message. (S)
 3. **Time window** — 24h / 7d / 30d, plus a workspace filter. (S)
 4. **Token mix** — input/output/cache as a stacked bar. (S)
@@ -84,8 +84,8 @@ Ten to fifteen concrete next steps for every surface shipped with the kit. Effor
 
 ## Kanban
 
-1. **Insert at drop position** — today a drop appends to the column. (S)
-2. **Edit a card** — double-click, with markdown notes. (M)
+1. **Insert at drop position** — today a drop appends to the column. (S) ✅ shipped
+2. **Edit a card** — double-click, with markdown notes. (M) ◐ shipped: double-click edit (plain text); markdown open
 3. **Metadata** — assignee, label, due date, linked session or task. (M)
 4. **Keyboard move** — pick up, arrow, drop. (S)
 5. **WIP limits** — per column, with a counter and a soft warning. (S)
