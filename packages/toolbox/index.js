@@ -384,6 +384,19 @@ async function pingRoute(ctx, provider, model) {
   return { ok: true, firstChunkMs, totalMs: Date.now() - started, text: text.slice(0, 80) }
 }
 
+/** Read one skill body for the preview pane, from the active or retired tree. */
+async function skillBody(dir) {
+  for (const root of [SKILLS, RETIRED]) {
+    try {
+      const text = await fs.readFile(path.join(root, dir, 'SKILL.md'), 'utf8')
+      return { dir, text: text.length > 24_000 ? `${text.slice(0, 24_000)}\n\n…truncated` : text }
+    } catch {
+      /* try the other tree */
+    }
+  }
+  return null
+}
+
 /** Register the panel's routes for this plugin's lifetime. */
 export function apply(ctx) {
   ctx.tools.register(
@@ -485,6 +498,26 @@ export function apply(ctx) {
         },
       }),
     'toolbox: skill toggle route',
+  )
+
+  ctx.effect(
+    () =>
+      ctx.connection.fetch.register({
+        path: '/api/toolbox/skill',
+        methods: ['GET'],
+        requestBody: 'buffered',
+        fetch: async (request) => {
+          try {
+            const dir = new URL(request.url).searchParams.get('dir') || ''
+            if (dir === '' || dir.includes('/') || dir.includes('..')) return json({ error: 'bad dir' }, 400)
+            const body = await skillBody(dir)
+            return body === null ? json({ error: 'skill not found' }, 404) : json(body)
+          } catch (error) {
+            return failure(error)
+          }
+        },
+      }),
+    'toolbox: skill body route',
   )
 
   ctx.effect(

@@ -25,4 +25,5 @@
 - [x] Command Center Message (session/prompt steer/queue)
 - [x] `kanban` agent tool (list/add/move/remove)
 - [x] Provider Test button (one-token ping)
+- [x] Skill body preview in the Skills panel
 - [x] One-command installer and CLI kit (memory, checkpoints, curator, registry, skill audit)

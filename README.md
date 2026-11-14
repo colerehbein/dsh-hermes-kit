@@ -66,7 +66,7 @@ Four separate sidebar panels from one package.
 
 ![The three sidebar entries](docs/images/sidebar-entries.png)
 
-**Skills** — every skill with its curator load count and last-seen time, sortable by loads/recent/name, a "never fired" filter, duplicate-name badges, and a switch. Disabling moves the skill to `~/.dsh/skills-retired` and back, because a leading dot does not hide a skill from DSH's catalogue.
+**Skills** — every skill with its curator load count and last-seen time, sortable by loads/recent/name, a "never fired" filter, duplicate-name badges, an inline **preview** of the skill body, and a switch. Disabling moves the skill to `~/.dsh/skills-retired` and back, because a leading dot does not hide a skill from DSH's catalogue.
 
 ![Skills manager](docs/images/toolbox-skills.png)
 

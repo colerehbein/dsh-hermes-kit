@@ -69,6 +69,7 @@ window.__ModuleLoader__.load({
 .tbx-empty{padding:14px;color:var(--dsw-alias-label-tertiary);font-size:12px}
 .tbx-note{color:var(--dsw-alias-label-tertiary);font-size:11px;margin:4px 0 8px}
 .tbx-error{color:var(--dsw-alias-state-error-primary);font-size:12px;padding:6px 0}
+.tbx-preview{margin:2px 8px 6px 12px;padding:8px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:var(--dsw-radius-md);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:16px;white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto}
 .tbx-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-label-caption);margin-right:6px;vertical-align:middle}
 .tbx-dotOn{background:var(--dsw-alias-state-success-primary,var(--dsw-alias-state-business-primary))}
 .tbx-sort{border:1px solid var(--dsw-alias-border-l1);border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font:inherit;font-size:11px;padding:3px 6px}
@@ -126,9 +127,19 @@ window.__ModuleLoader__.load({
       const [sort, setSort] = useState('loads')
       const [neverFired, setNeverFired] = useState(false)
       const [busy, setBusy] = useState(null)
+      const [preview, setPreview] = useState(null)
       const load = useCallback(() => {
         fetchJson('/api/toolbox/skills').then(setData).catch((e) => setError(e.message))
       }, [])
+      const togglePreview = async (row) => {
+        if (preview !== null && preview.dir === row.dir) return setPreview(null)
+        try {
+          const body = await fetchJson(`/api/toolbox/skill?dir=${encodeURIComponent(row.dir)}`)
+          setPreview({ dir: row.dir, text: body.text })
+        } catch (e) {
+          setError(e.message)
+        }
+      }
       useEffect(load, [load])
 
       const rows = useMemo(() => {
@@ -198,14 +209,28 @@ window.__ModuleLoader__.load({
           'div',
           { className: 'tbx-list' },
           rows.map((row) => h(
-            'div',
-            { className: 'tbx-row' + (row.enabled ? '' : ' tbx-rowOff'), key: row.dir },
-            h('span', { className: 'tbx-name', title: row.name }, row.name),
-            row.copies > 1 ? h('span', { className: 'tbx-copies', title: t('skills.duplicates', { count: row.copies }) }, `×${row.copies}`) : null,
-            h('span', { className: 'tbx-desc', title: row.description }, row.description),
-            h('span', { className: 'tbx-load', title: t('skills.loads') }, String(row.loads)),
-            h('span', { className: 'tbx-muted' }, ago(row.lastSeen)),
-            h(Switch, { checked: row.enabled, label: t('skills.toggle', { name: row.name }), onChange: () => toggle(row) }),
+            React.Fragment,
+            { key: row.dir },
+            h(
+              'div',
+              { className: 'tbx-row' + (row.enabled ? '' : ' tbx-rowOff') },
+              h('button', {
+                type: 'button',
+                className: 'tbx-name',
+                style: { background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', color: 'inherit', font: 'inherit' },
+                title: t('skills.preview'),
+                'aria-expanded': preview !== null && preview.dir === row.dir,
+                onClick: () => void togglePreview(row),
+              }, row.name),
+              row.copies > 1 ? h('span', { className: 'tbx-copies', title: t('skills.duplicates', { count: row.copies }) }, `×${row.copies}`) : null,
+              h('span', { className: 'tbx-desc', title: row.description }, row.description),
+              h('span', { className: 'tbx-load', title: t('skills.loads') }, String(row.loads)),
+              h('span', { className: 'tbx-muted' }, ago(row.lastSeen)),
+              h(Switch, { checked: row.enabled, label: t('skills.toggle', { name: row.name }), onChange: () => toggle(row) }),
+            ),
+            preview !== null && preview.dir === row.dir
+              ? h('pre', { className: 'tbx-preview' }, preview.text)
+              : null,
           )),
           rows.length === 0 && h('div', { className: 'tbx-empty' }, t('skills.empty')),
         ),
@@ -731,6 +756,7 @@ window.__ModuleLoader__.load({
       'skills.duplicates': '{count} copies share this name',
       'skills.toggle': 'Enable {name}',
       'skills.empty': 'No skills match.',
+      'skills.preview': 'Show the skill body',
       'providers.note': 'From the newest {scanned} session logs. Tokens are reported by the provider.',
       'providers.model': 'Model',
       'providers.messages': 'Messages',
@@ -799,6 +825,7 @@ window.__ModuleLoader__.load({
       'skills.duplicates': '{count} 个同名副本',
       'skills.toggle': '启用 {name}',
       'skills.empty': '没有匹配的技能。',
+      'skills.preview': '查看技能正文',
       'providers.note': '来自最新 {scanned} 个会话日志。token 由提供商上报。',
       'providers.model': '模型',
       'providers.messages': '消息',
