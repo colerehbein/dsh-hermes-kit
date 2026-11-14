@@ -78,7 +78,7 @@ Four separate sidebar panels from one package.
 
 ![Kanban board](docs/images/toolbox-kanban.png)
 
-**Command Center** — every durable session with its status, model, message count, token total and last write, plus a **Stop** button that cancels an active session's current turn. Opening a session still happens from the sidebar.
+**Command Center** — every durable session with its status, model, message count, token total and last write. **Open** switches the main view to that session; **Stop** cancels an active session's current turn.
 
 ![Command Center](docs/images/command-center.png)
 

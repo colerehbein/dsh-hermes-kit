@@ -470,7 +470,7 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function CommandTab({ t, stop }) {
+    function CommandTab({ t, stop, open }) {
       const [data, setData] = useState(null)
       const [error, setError] = useState(null)
       const [stopping, setStopping] = useState(null)
@@ -511,6 +511,11 @@ window.__ModuleLoader__.load({
               `${workspace(row.cwd)} · ${row.model || '—'} · ${row.messages} ${t('sessions.messagesShort')} · ${n(row.tokens)} ${t('sessions.tokensShort')}`,
             ),
           ),
+          h('button', {
+            type: 'button',
+            className: 'tbx-btn',
+            onClick: () => open(row.id),
+          }, t('command.open')),
           row.active
             ? h('button', {
                 type: 'button',
@@ -524,14 +529,14 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function CommandPage({ t, stop }) {
+    function CommandPage({ t, stop, open }) {
       return h(
         'div',
         { className: 'tbx-page' },
         h('div', { className: 'tbx-head' }, h('span', { className: 'tbx-title' }, t('command.title'))),
         h('div', { className: 'tbx-body' },
           h('div', { className: 'tbx-note' }, t('command.note')),
-          h(CommandTab, { t, stop }),
+          h(CommandTab, { t, stop, open }),
         ),
       )
     }
@@ -643,6 +648,7 @@ window.__ModuleLoader__.load({
       'command.title': 'Command Center',
       'command.note': 'Every durable session with its model, message count, token total and last write. An active session can be stopped here; opening one stays with the sidebar.',
       'command.empty': 'No sessions found.',
+      'command.open': 'Open',
       'command.stop': 'Stop',
       'command.stopping': 'Stopping…',
       'command.stopFailed': 'The session did not accept the stop request.',
@@ -703,6 +709,7 @@ window.__ModuleLoader__.load({
       'command.title': '指挥中心',
       'command.note': '每个持久会话的模型、消息数、token 总量与最近写入。活跃会话可在此停止；打开会话仍使用左侧边栏。',
       'command.empty': '没有会话。',
+      'command.open': '打开',
       'command.stop': '停止',
       'command.stopping': '停止中…',
       'command.stopFailed': '会话没有接受停止请求。',
@@ -756,6 +763,10 @@ window.__ModuleLoader__.load({
       ctx.effect(() => ctx.locale.register(NS, { en, zh }), 'toolbox: dictionaries')
       const t = ctx.locale.bind(NS)
       const stopSession = (sessionId) => ctx.remote.session.cancel({ sessionId })
+      let openSession = () => {}
+      ctx.inject(['uiWorkspace'], (scope) => {
+        openSession = (sessionId) => scope.uiWorkspace.openSession(sessionId)
+      })
       const rows = [
         { key: 'skills', order: 23, label: 'skills.title', icon: SkillsIcon },
         { key: 'providers', order: 24, label: 'providers.title', icon: ProvidersIcon },
@@ -774,7 +785,7 @@ window.__ModuleLoader__.load({
         skills: SkillsPage,
         providers: ProvidersPage,
         kanban: KanbanPage,
-        command: (props) => h(CommandPage, { ...props, stop: stopSession }),
+        command: (props) => h(CommandPage, { ...props, stop: stopSession, open: (id) => openSession(id) }),
       }
       for (const key of Object.keys(pages)) {
         ctx.slots.inject('main', () =>
