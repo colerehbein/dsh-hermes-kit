@@ -424,7 +424,7 @@ window.__ModuleLoader__.load({
 
     /** Composer model seat: trigger plus the Hermes-style catalog panel. */
     function ModelPicker(props) {
-      const { locked, available, directory, load, select, resolveText, t } = props
+      const { locked, available, directory, load, refresh, select, resolveText, t } = props
       const subscribe = useCallback((notify) => directory.subscribe(notify), [directory])
       const state = useSyncExternalStore(subscribe, () => directory.getSnapshot())
       const [open, setOpen] = useState(false)
@@ -847,11 +847,12 @@ window.__ModuleLoader__.load({
               {
                 type: 'button',
                 className: 'dsh-hmp-footRow',
+                disabled: state.status === 'loading',
                 onMouseDown: (event) => event.preventDefault(),
-                onClick: () => load(),
+                onClick: () => refresh(),
               },
               h('span', { className: 'dsh-hmp-footIcon' }, RefreshIcon()),
-              t('foot.refresh'),
+              state.status === 'loading' ? t('foot.refreshing') : t('foot.refresh'),
             ),
             h(
               'button',
@@ -1170,6 +1171,7 @@ window.__ModuleLoader__.load({
       'hint.star': 'favorite',
       'edit.open': 'Edit models…',
       'foot.refresh': 'Refresh models',
+      'foot.refreshing': 'Refreshing…',
       'edit.title': 'Edit models',
       'edit.search': 'Filter models…',
       'edit.count': '{shown} of {total} shown',
@@ -1202,6 +1204,7 @@ window.__ModuleLoader__.load({
       'hint.star': '收藏',
       'edit.open': '编辑模型…',
       'foot.refresh': '刷新模型',
+      'foot.refreshing': '刷新中…',
       'edit.title': '编辑模型',
       'edit.search': '筛选模型…',
       'edit.count': '显示 {shown} / {total}',
@@ -1237,6 +1240,17 @@ window.__ModuleLoader__.load({
                   directory: directory.store,
                   load: () => {
                     if (available) directory.load().catch(() => {})
+                  },
+                  refresh: () => {
+                    if (!available) return
+                    // load() only ensures the shared catalog is loaded; the
+                    // footer's Refresh has to invalidate it first or it is a no-op.
+                    try {
+                      models.catalog?.refresh?.()
+                    } catch {
+                      /* older resolver without a catalog handle: fall through to load */
+                    }
+                    directory.load().catch(() => {})
                   },
                   resolveText: (text) => ctx.locale.resolveText(text),
                   select: (selection) => (available ? directory.select(selection) : Promise.resolve(undefined)),
