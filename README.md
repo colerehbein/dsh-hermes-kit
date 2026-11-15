@@ -28,7 +28,7 @@ Needs `bash`, `python3`, and an existing DSH profile.
 
 | Plugin | What it does |
 | --- | --- |
-| **Model picker** — [`packages/model-picker`](packages/model-picker) | Replaces the composer's model seat: search with match highlighting, favorites, collapsible provider groups, per-model reasoning levels, and an **Edit models** dialog that decides which models appear at all. |
+| **Model picker** — [`packages/model-picker`](packages/model-picker) | Replaces the composer's model seat: search with match highlighting, favorites, collapsible provider groups, per-model reasoning levels, and an **Edit models** dialog that decides which models appear at all. Large providers start collapsed. |
 | **Projects page** — [`packages/projects-page`](packages/projects-page) | A read-only Projects panel: registry roster, open `TODO.md` items, subfolders, newest sessions, session hover marks. |
 | **Skills · Providers · Kanban · Command Center** — [`packages/toolbox`](packages/toolbox) | Four sidebar panels: skills manager (curator load counts, enable/disable), provider health (tokens, errors, last used per model), a kanban board, and a session dashboard. |
 
@@ -56,6 +56,13 @@ Three skills (`dsh-memory`, `dsh-checkpoints`, `dsh-curator`) ship with the CLIs
 - **Visibility rules** follow Hermes: never-curated means everything; hiding a provider's last model records a hide-all sentinel; models that arrive later default to visible; `Reset` clears both keys.
 - **Footer rows**: *Refresh models* re-reads the catalog; *Edit models…* opens the visibility editor.
 - **Keyboard**: `↑`/`↓` move the highlight, `Enter` selects, `Shift+Enter` stars, `Esc` leaves the editor or closes. Focus stays in the search field.
+
+DSH decides what a route serves from `cordis.patch.yml`, so a hand-written model list drifts the moment a provider renames a model. [`tools/sync-models.py`](tools/sync-models.py) regenerates one provider's block from its own listing endpoint:
+
+    python3 tools/sync-models.py --config ~/.dsh/profiles/desktop/cordis.patch.yml \
+        --provider nous --url https://inference-api.nousresearch.com/v1/models --key-env NOUS_API_KEY
+
+It keeps ids, names, context windows, input modalities and the reasoning levels the provider advertises (dropping any level DSH does not accept, which would invalidate the whole provider). The Host reads this file at boot, so a relaunch is what applies it.
 
 The picker shadows the stock `conversation.input.model` occupant at `priority: -1` (a single slot renders the lowest priority and requires distinct priorities) and reuses the same per-session `modelDirectories` service, so model switches keep DSH's durable behaviour.
 

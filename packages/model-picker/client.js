@@ -30,6 +30,9 @@ window.__ModuleLoader__.load({
     /** localStorage key of keys judged at the last save, so new arrivals default on. */
     const KNOWN_KEY = 'dsh.hermes-model-picker.known'
     const COLLAPSE_KEY = 'dsh.hermes-model-picker.collapsed'
+    const OPENED_KEY = 'dsh.hermes-model-picker.opened'
+    /** Groups above this size start collapsed so a 400-model provider is one row, not 400. */
+    const AUTO_COLLAPSE_AT = 30
     /** Unique stylesheet tag so a reload does not append a second copy. */
     const CSS_TAG = '@dsh-local/hermes-model-picker/picker.css'
 
@@ -433,6 +436,7 @@ window.__ModuleLoader__.load({
       const [effortFor, setEffortFor] = useState(null)
       const [favorites, setFavorites] = useState(() => readList(FAV_KEY))
       const [collapsed, setCollapsed] = useState(() => readList(COLLAPSE_KEY))
+      const [opened, setOpened] = useState(() => readList(OPENED_KEY))
       const [visible, setVisible] = useState(() => readSet(VISIBLE_KEY))
       const [known, setKnown] = useState(() => readSet(KNOWN_KEY))
       const [mode, setMode] = useState('pick')
@@ -560,14 +564,23 @@ window.__ModuleLoader__.load({
 
       const visibleGroups = ordered.filter((entry) => entry.models.length > 0)
 
+      const isGroupCollapsed = useCallback(
+        (group) => {
+          if (normalized !== '') return false
+          if (collapsed.includes(group.id)) return true
+          return group.models.length > AUTO_COLLAPSE_AT && !opened.includes(group.id)
+        },
+        [normalized, collapsed, opened],
+      )
+
       const rows = useMemo(() => {
         const all = [...favoriteRows]
         for (const entry of visibleGroups) {
-          if (normalized === '' && collapsed.includes(entry.group.id)) continue
+          if (isGroupCollapsed(entry.group)) continue
           all.push(...entry.models)
         }
         return all
-      }, [favoriteRows, visibleGroups, collapsed, normalized])
+      }, [favoriteRows, visibleGroups, isGroupCollapsed])
 
       useEffect(() => {
         if (!open) return
@@ -596,15 +609,31 @@ window.__ModuleLoader__.load({
         })
       }, [])
 
-      const toggleCollapsed = useCallback((provider) => {
-        setCollapsed((previous) => {
-          const next = previous.includes(provider)
-            ? previous.filter((item) => item !== provider)
-            : [...previous, provider]
+      const toggleCollapsed = useCallback(
+        (group) => {
+          if (isGroupCollapsed(group)) {
+            if (group.models.length > AUTO_COLLAPSE_AT && !opened.includes(group.id)) {
+              const next = [...opened, group.id]
+              setOpened(next)
+              writeList(OPENED_KEY, next)
+            } else {
+              const next = collapsed.filter((item) => item !== group.id)
+              setCollapsed(next)
+              writeList(COLLAPSE_KEY, next)
+            }
+            return
+          }
+          const next = [...collapsed, group.id]
+          setCollapsed(next)
           writeList(COLLAPSE_KEY, next)
-          return next
-        })
-      }, [])
+          if (opened.includes(group.id)) {
+            const without = opened.filter((item) => item !== group.id)
+            setOpened(without)
+            writeList(OPENED_KEY, without)
+          }
+        },
+        [collapsed, opened, isGroupCollapsed],
+      )
 
       const choose = useCallback(
         async (group, model, effort) => {
@@ -819,16 +848,14 @@ window.__ModuleLoader__.load({
                     className:
                       'dsh-hmp-groupHead' +
                       (state.current !== undefined && entry.group.id === state.current.provider ? ' dsh-hmp-groupHeadActive' : ''),
-                    'aria-expanded': !(normalized === '' && collapsed.includes(entry.group.id)),
-                    onClick: () => toggleCollapsed(entry.group.id),
+                    'aria-expanded': !isGroupCollapsed(entry.group),
+                    onClick: () => toggleCollapsed(entry.group),
                   },
-                  ChevronIcon({ open: !(normalized === '' && collapsed.includes(entry.group.id)) }),
+                  ChevronIcon({ open: !isGroupCollapsed(entry.group) }),
                   h('span', null, providerName(entry.group)),
                   h('span', { className: 'dsh-hmp-badge' }, String(entry.models.length)),
                 ),
-                normalized === '' && collapsed.includes(entry.group.id)
-                  ? null
-                  : entry.models.map((row) => renderRow(row, false)),
+                isGroupCollapsed(entry.group) ? null : entry.models.map((row) => renderRow(row, false)),
               ),
             ),
             failures.length > 0
