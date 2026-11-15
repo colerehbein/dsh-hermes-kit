@@ -64,7 +64,7 @@
             reasoningEfforts: { off: null, low: low, medium: medium, high: high }
           - id: 'reflection/beam-1.0-501b-a23b'
             name: Beam 1.0 (free)
-            contextWindow: 262144
+            contextWindow: 1048576
             reasoningEfforts: { off: null, low: low, medium: medium, high: high }
 
       # Command Code — chat-completions models. Its Claude models speak /messages only, so they live on the route below.
