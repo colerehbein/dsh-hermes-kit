@@ -70,8 +70,20 @@ window.__ModuleLoader__.load({
 .tbx-note{color:var(--dsw-alias-label-tertiary);font-size:11px;margin:4px 0 8px}
 .tbx-error{color:var(--dsw-alias-state-error-primary);font-size:12px;padding:6px 0}
 .tbx-preview{margin:2px 8px 6px 12px;padding:8px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:var(--dsw-radius-md);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:16px;white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto}
-.tbx-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-label-caption);margin-right:6px;vertical-align:middle}
+.tbx-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-label-caption);margin-right:6px;vertical-align:middle;flex:none}
 .tbx-dotOn{background:var(--dsw-alias-state-success-primary,var(--dsw-alias-state-business-primary))}
+.tbx-dotWait{background:var(--dsw-alias-state-warning-primary)}
+.tbx-dotErr{background:var(--dsw-alias-state-error-primary)}
+.tbx-state{flex:none;font-size:10px;line-height:15px;padding:0 5px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary)}
+.tbx-stateErr{color:var(--dsw-alias-state-error-primary);border-color:var(--dsw-alias-state-error-primary)}
+.tbx-stateWait{color:var(--dsw-alias-state-warning-primary);border-color:var(--dsw-alias-state-warning-primary)}
+.tbx-stateRun{color:var(--dsw-alias-state-success-primary,var(--dsw-alias-state-business-primary));border-color:currentColor}
+.tbx-filters{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:2px 0 8px}
+.tbx-chip{border:1px solid var(--dsw-alias-border-l1);border-radius:999px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font:inherit;font-size:11px;line-height:16px;padding:1px 8px;cursor:pointer}
+.tbx-chip:hover{background:var(--dsw-alias-bg-layer-2)}
+.tbx-chip[aria-pressed="true"]{border-color:var(--dsw-alias-state-business-primary);color:var(--dsw-alias-label-primary)}
+.tbx-prices{display:flex;flex-direction:column;gap:6px;padding:6px 0 10px}
+.tbx-pricesText{width:100%;box-sizing:border-box;resize:vertical;font-family:var(--dsw-alias-font-mono,ui-monospace,SFMono-Regular,Menlo,monospace);font-size:11px;line-height:16px;padding:8px;border-radius:6px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .tbx-sort{border:1px solid var(--dsw-alias-border-l1);border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font:inherit;font-size:11px;padding:3px 6px}
 .tbx-check{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--dsw-alias-label-secondary);cursor:pointer}
 .tbx-copies{flex:none;border:1px solid var(--dsw-alias-border-l2);border-radius:999px;padding:0 5px;font-size:10px;line-height:15px;color:var(--dsw-alias-label-secondary)}
@@ -705,6 +717,7 @@ window.__ModuleLoader__.load({
     function CommandTab({ t, stop, open, send }) {
       const [data, setData] = useState(null)
       const [error, setError] = useState(null)
+      const [filter, setFilter] = useState('all')
       const [stopping, setStopping] = useState(null)
       const [composing, setComposing] = useState(null)
       const [draft, setDraft] = useState('')
@@ -730,13 +743,59 @@ window.__ModuleLoader__.load({
           setStopping(null)
         }
       }
+      // `state` is computed by the Host from the log's own turn events. Fall
+      // back to the old liveness flag so a client that reloads before the Host
+      // restarts still renders a sane dot instead of a missing label.
+      const stateOf = (row) => row.state || (row.active === true ? 'running' : 'idle')
+      // A stopped turn is a normal ending, so it never borrows the error style.
+      const pillOf = (state) => (state === 'idle' ? null : state)
+      // Triage counts are derived from the same rows the list renders, so the
+      // filter chips can never disagree with what clicking them shows.
+      const counts = { all: data.rows.length, running: 0, waiting: 0, error: 0, stopped: 0 }
+      for (const row of data.rows) {
+        const state = stateOf(row)
+        if (state in counts) counts[state] += 1
+      }
+      const visible = filter === 'all' ? data.rows : data.rows.filter((row) => stateOf(row) === filter)
       return h(
         'div',
         { className: 'tbx-list' },
-        data.rows.map((row) => h(
+        h(
+          'div',
+          { className: 'tbx-filters', role: 'group', 'aria-label': t('command.filter') },
+          ['all', 'running', 'waiting', 'error', 'stopped'].map((key) => h('button', {
+            key,
+            type: 'button',
+            className: 'tbx-chip' + (filter === key ? ' tbx-chipOn' : ''),
+            'aria-pressed': filter === key,
+            onClick: () => setFilter(key),
+          }, `${t(`sessions.state.${key}`)} ${counts[key]}`)),
+          data.unreadable > 0
+            ? h('span', { className: 'tbx-muted' }, t('sessions.unreadable', { count: String(data.unreadable) }))
+            : null,
+        ),
+        visible.length === 0
+          ? h('div', { className: 'tbx-empty' }, t('command.emptyFilter'))
+          : null,
+        visible.map((row) => h(
           'div',
           { className: 'tbx-row', key: row.id },
-          h('span', { className: 'tbx-dot' + (row.active ? ' tbx-dotOn' : ''), title: row.active ? t('sessions.active') : t('sessions.idle') }),
+          h('span', {
+            className: 'tbx-dot'
+              + (stateOf(row) === 'running' ? ' tbx-dotOn' : '')
+              + (stateOf(row) === 'waiting' ? ' tbx-dotWait' : '')
+              + (stateOf(row) === 'error' ? ' tbx-dotErr' : ''),
+            title: t(`sessions.state.${stateOf(row)}`),
+          }),
+          pillOf(stateOf(row)) === null
+            ? null
+            : h('span', {
+                className: 'tbx-state'
+                  + (stateOf(row) === 'error' ? ' tbx-stateErr' : '')
+                  + (stateOf(row) === 'waiting' ? ' tbx-stateWait' : '')
+                  + (stateOf(row) === 'running' ? ' tbx-stateRun' : ''),
+                title: row.lastError || t(`sessions.state.${stateOf(row)}`),
+              }, row.severity === 'limit' ? t('sessions.state.limit') : t(`sessions.state.${stateOf(row)}`)),
           h(
             'span',
             { className: 'tbx-copy' },
@@ -746,13 +805,16 @@ window.__ModuleLoader__.load({
               { className: 'tbx-desc' },
               `${workspace(row.cwd)} · ${row.model || '—'} · ${row.messages} ${t('sessions.messagesShort')} · ${n(row.tokens)} ${t('sessions.tokensShort')}`,
             ),
+            row.lastError !== null && row.lastError !== undefined
+              ? h('span', { className: 'tbx-desc tbx-sevError', title: row.lastError }, row.lastError)
+              : null,
           ),
           h('button', {
             type: 'button',
             className: 'tbx-btn',
             onClick: () => open(row.id),
           }, t('command.open')),
-          row.active
+          stateOf(row) === 'running'
             ? h('button', {
                 type: 'button',
                 className: 'tbx-btn',
@@ -779,7 +841,7 @@ window.__ModuleLoader__.load({
                   if (text === '') return
                   setSending(row.id)
                   try {
-                    const result = await send(row.id, text, row.active)
+                    const result = await send(row.id, text, stateOf(row) === 'running')
                     if (result?.ok === false) setError(result.error?.message || t('command.sendFailed'))
                     else {
                       setSent(row.id)
@@ -797,7 +859,7 @@ window.__ModuleLoader__.load({
                 h('input', {
                   autoFocus: true,
                   value: draft,
-                  placeholder: row.active ? t('command.steerPlaceholder') : t('command.queuePlaceholder'),
+                  placeholder: stateOf(row) === 'running' ? t('command.steerPlaceholder') : t('command.queuePlaceholder'),
                   'aria-label': t('command.message'),
                   onChange: (event) => setDraft(event.target.value),
                 }),
@@ -875,11 +937,58 @@ window.__ModuleLoader__.load({
       const [data, setData] = useState(null)
       const [error, setError] = useState(null)
       const [days, setDays] = useState(30)
+      const [reload, setReload] = useState(0)
+      const [editing, setEditing] = useState(false)
+      const [prices, setPrices] = useState('')
+      const [note, setNote] = useState(null)
+      const [saving, setSaving] = useState(false)
       useEffect(() => {
         setData(null)
         setError(null)
         fetchJson(`/api/toolbox/insights?days=${days}`).then(setData).catch((e) => setError(e.message))
-      }, [days])
+      }, [days, reload])
+      const openPrices = async () => {
+        setNote(null)
+        try {
+          const current = await fetchJson('/api/toolbox/prices')
+          setPrices(JSON.stringify(current, null, 2))
+        } catch {
+          // The Host half only loads at boot, so a freshly copied plugin can
+          // reach a page that has no route yet. Start from an empty table
+          // rather than replacing the whole panel with an error.
+          setPrices('{}')
+        }
+        setEditing(true)
+      }
+      const savePrices = async () => {
+        let parsed
+        try {
+          parsed = JSON.parse(prices)
+        } catch {
+          setNote(t('insights.pricesInvalid'))
+          return
+        }
+        if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          setNote(t('insights.pricesInvalid'))
+          return
+        }
+        setSaving(true)
+        try {
+          const saved = await fetchJson('/api/toolbox/prices', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(parsed),
+          })
+          if (saved?.ok === false) throw new Error(saved.error || 'save failed')
+          setNote(t('insights.pricesSaved', { count: String(Object.keys(saved.saved || {}).length) }))
+          setEditing(false)
+          setReload((n) => n + 1)
+        } catch (e) {
+          setNote(e.message)
+        } finally {
+          setSaving(false)
+        }
+      }
       const head = h(
         'div',
         { className: 'tbx-head' },
@@ -914,7 +1023,46 @@ window.__ModuleLoader__.load({
               onClick: () => setDays(value),
             }, t('insights.days', { days: String(value) }))),
             h('span', { className: 'tbx-muted' }, t('insights.scanned', { count: String(data.scanned) })),
+            data.totals.unpriced > 0
+              ? h('span', { className: 'tbx-muted' }, t('insights.unpriced', { count: n(data.totals.unpriced) }))
+              : null,
+            h('button', {
+              type: 'button',
+              className: 'tbx-btn',
+              onClick: () => void openPrices(),
+            }, t('insights.prices')),
           ),
+          editing
+            ? h(
+                'div',
+                { className: 'tbx-prices' },
+                h('div', { className: 'tbx-muted' }, t('insights.pricesHint')),
+                h('textarea', {
+                  className: 'tbx-pricesText',
+                  spellCheck: false,
+                  rows: 8,
+                  value: prices,
+                  onChange: (event) => setPrices(event.target.value),
+                  'aria-label': t('insights.prices'),
+                }),
+                h(
+                  'div',
+                  { className: 'tbx-filters' },
+                  h('button', {
+                    type: 'button',
+                    className: 'tbx-btn',
+                    disabled: saving,
+                    onClick: () => void savePrices(),
+                  }, saving ? t('board.save') : t('insights.pricesSave')),
+                  h('button', {
+                    type: 'button',
+                    className: 'tbx-btn',
+                    onClick: () => { setEditing(false); setNote(null) },
+                  }, t('board.cancel')),
+                ),
+              )
+            : null,
+          note !== null ? h('span', { className: 'tbx-muted', role: 'status', 'aria-live': 'polite' }, note) : null,
           h(
             'div',
             { className: 'tbx-stats' },
@@ -925,6 +1073,7 @@ window.__ModuleLoader__.load({
             stat(t('insights.cache'), n(data.totals.cache)),
             stat(t('insights.tools'), n(data.totals.tools)),
             stat(t('insights.errors'), n(data.totals.errors)),
+            stat(t('insights.cost'), data.totals.cost > 0 ? `$${data.totals.cost.toFixed(2)}` : '—'),
           ),
           data.daily.length === 0
             ? h('div', { className: 'tbx-empty' }, t('insights.empty'))
@@ -961,7 +1110,9 @@ window.__ModuleLoader__.load({
                   h('span', { className: 'tbx-copy' },
                     h('span', { className: 'tbx-name' }, h('span', { className: 'tbx-badge' }, row.provider), ' ', row.model),
                     h('span', { className: 'tbx-desc' },
-                      `${n(row.messages)} ${t('sessions.messagesShort')} · ${n(row.input)} ${t('insights.inShort')} · ${n(row.output)} ${t('insights.outShort')} · ${n(row.cache)} ${t('providers.cacheShort')} · ${row.errors} ${t('providers.errorsShort')}`),
+                      `${n(row.messages)} ${t('sessions.messagesShort')} · ${n(row.input)} ${t('insights.inShort')} · ${n(row.output)} ${t('insights.outShort')} · ${n(row.cache)} ${t('providers.cacheShort')} · ${row.errors} ${t('providers.errorsShort')}`
+                        + (row.priced > 0 ? ` · $${row.cost.toFixed(2)}` : '')
+                        + (row.unpriced > 0 ? ` · ${t('insights.partlyUnpriced', { count: n(row.unpriced) })}` : '')),
                   ),
                 )),
           ),
@@ -1418,6 +1569,14 @@ window.__ModuleLoader__.load({
       'insights.cache': 'Cache read',
       'insights.tools': 'Tool calls',
       'insights.errors': 'Tool errors',
+      'insights.cost': 'Cost (priced only)',
+      'insights.unpriced': '{count} messages from models with no price set',
+      'insights.partlyUnpriced': '{count} unpriced',
+      'insights.prices': 'Set prices…',
+      'insights.pricesHint': 'USD per million tokens, keyed "<provider>/<model>". Anything absent is counted as unpriced instead of guessed.',
+      'insights.pricesSave': 'Save prices',
+      'insights.pricesSaved': 'Saved {count} price(s).',
+      'insights.pricesInvalid': 'That is not a JSON object.',
       'insights.perDay': 'Tokens per day',
       'insights.chartLabel': 'Daily token usage',
       'insights.tokens': 'tokens',
@@ -1471,6 +1630,16 @@ window.__ModuleLoader__.load({
       'sessions.tokensShort': 'tokens',
       'sessions.active': 'active',
       'sessions.idle': 'idle',
+      'sessions.state.running': 'running',
+      'sessions.state.waiting': 'waiting',
+      'sessions.state.error': 'error',
+      'sessions.state.limit': 'rate limit',
+      'sessions.state.idle': 'idle',
+      'sessions.state.all': 'all',
+      'sessions.state.stopped': 'stopped',
+      'sessions.unreadable': '{count} log(s) could not be read',
+      'command.filter': 'Filter sessions',
+      'command.emptyFilter': 'No session in this state.',
       'skills.search': 'Filter skills',
       'skills.totals': '{enabled} enabled · {all} total · {retired} retired',
       'skills.note': 'Loads come from the curator. Disabling moves a skill to ~/.dsh/skills-retired.',
@@ -1563,6 +1732,14 @@ window.__ModuleLoader__.load({
       'insights.cache': '缓存读取',
       'insights.tools': '工具调用',
       'insights.errors': '工具错误',
+      'insights.cost': '费用（仅已定价）',
+      'insights.unpriced': '{count} 条消息来自未定价的模型',
+      'insights.partlyUnpriced': '{count} 条未定价',
+      'insights.prices': '设置价格…',
+      'insights.pricesHint': '美元 / 百万 token，键为 "<provider>/<model>"。未列出的模型计为未定价，不做猜测。',
+      'insights.pricesSave': '保存价格',
+      'insights.pricesSaved': '已保存 {count} 条价格。',
+      'insights.pricesInvalid': '这不是一个 JSON 对象。',
       'insights.perDay': '每日 token',
       'insights.chartLabel': '每日 token 用量',
       'insights.tokens': 'token',
@@ -1616,6 +1793,16 @@ window.__ModuleLoader__.load({
       'sessions.tokensShort': 'token',
       'sessions.active': '活跃',
       'sessions.idle': '空闲',
+      'sessions.state.running': '运行中',
+      'sessions.state.waiting': '待确认',
+      'sessions.state.error': '出错',
+      'sessions.state.limit': '限流',
+      'sessions.state.idle': '空闲',
+      'sessions.state.all': '全部',
+      'sessions.state.stopped': '已停止',
+      'sessions.unreadable': '{count} 个日志无法读取',
+      'command.filter': '筛选会话',
+      'command.emptyFilter': '该状态下没有会话。',
       'skills.search': '筛选技能',
       'skills.totals': '{enabled} 启用 · {all} 总数 · {retired} 已停用',
       'skills.note': '加载次数来自 curator。停用会把技能移动到 ~/.dsh/skills-retired。',

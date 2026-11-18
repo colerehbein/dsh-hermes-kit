@@ -27,6 +27,7 @@ const SKILLS = path.join(HOME, '.dsh', 'skills')
 const RETIRED = path.join(HOME, '.dsh', 'skills-retired')
 const STATS = path.join(HOME, '.dsh', 'curator', 'stats.json')
 const BOARD = path.join(HOME, '.dsh', 'toolbox', 'board.json')
+const PRICES = path.join(HOME, '.dsh', 'toolbox', 'prices.json')
 const SESSIONS = path.join(HOME, '.dsh', 'sessions')
 const SESSION_LIMIT = 40
 const CACHE_MS = 60_000
@@ -233,15 +234,45 @@ async function providersPayload() {
 let sessionCache = null
 
 /**
+ * Rate-limit / quota signatures. The distinction matters: a 429 is the user
+ * waiting on a provider and retrying costs nothing but time, while a bad key or
+ * a 5xx is a dead session that will fail identically on every retry.
+ */
+const LIMIT_RE = /\b429\b|rate[-_ ]?limit|rate_limit_error|usage limit|quota|billing|reached your|5[- ]?hour/i
+
+/**
+ * How a turn ended, as the log actually records it (measured over this
+ * install: 196 `completed`, 11 `error`, 9 `aborted`).
+ *
+ * An abort is not a failure: `user` is the Stop button, `parent` is the same
+ * in an agent team, and only `disposed`/`legacy` mean the turn was lost. A
+ * cancelled turn shows as stopped so a triage panel does not cry wolf.
+ */
+const FAILURE_KINDS = new Set(['error'])
+const CANCELLED_CAUSES = new Set(['user', 'parent'])
+
+/**
+ * An open turn whose log has not been written for this long is not running —
+ * it is a session that died mid-turn (a crash, a killed app, a lost power
+ * lead) and will never write its `turn/end`. Without this bound such a session
+ * claims to be running forever.
+ */
+const STALE_TURN_MS = 15 * 60_000
+
+/**
  * One row per durable session, read from its log: title, workspace, model,
- * message and token totals, and the file's last write. A session is reported
- * "active" when its log was written within the last two minutes — the files
- * carry no liveness flag, and a page cannot ask the Host for another tab's
- * in-flight state.
+ * message and token totals, and how the last turn ended.
+ *
+ * Liveness is derived from the log's own events rather than its mtime. File
+ * time is wrong in both directions — a session paused on a question looks
+ * finished, and a dead session that the editor just touched looks alive. The
+ * log knows: `turn/start` opens a turn, `turn/end` closes it, and `approval/asked`
+ * pins a session as waiting until `approval/decided`.
  */
 async function sessionsPayload() {
   if (sessionCache !== null && Date.now() - sessionCache.at < 30_000) return sessionCache.value
   const rows = []
+  let unreadable = 0
   const roots = await fs.readdir(SESSIONS, { withFileTypes: true }).catch(() => [])
   for (const root of roots) {
     if (!root.isDirectory()) continue
@@ -256,12 +287,19 @@ async function sessionsPayload() {
         continue
       }
       const text = await readSession(file)
-      if (text === null) continue
+      if (text === null) {
+        unreadable += 1
+        continue
+      }
       let cwd = ''
       let title = null
       let model = ''
       let messages = 0
       let tokens = 0
+      let openedTurn = -1
+      let askedApproval = -1
+      let decidedApproval = -1
+      let lastEnd = null
       for (const line of text.split('\n')) {
         if (line === '') continue
         let event
@@ -270,10 +308,28 @@ async function sessionsPayload() {
         } catch {
           continue
         }
+        const seq = typeof event.seq === 'number' ? event.seq : 0
         if (event.type === 'session') {
           cwd = event.cwd || cwd
         } else if (event.type === 'session/title') {
           title = event.data?.title || title
+        } else if (event.type === 'turn/start') {
+          openedTurn = seq
+        } else if (event.type === 'approval/asked') {
+          askedApproval = seq
+        } else if (event.type === 'approval/decided') {
+          decidedApproval = seq
+        } else if (event.type === 'turn/end') {
+          const reason = event.data?.reason || {}
+          const message = reason.error?.message || reason.message || ''
+          lastEnd = {
+            seq,
+            kind: String(reason.kind || 'unknown'),
+            cause: reason.reason?.kind || null,
+            at: typeof event.time === 'number' ? event.time : stat.mtimeMs,
+            error: message ? String(message).slice(0, 300) : null,
+          }
+          openedTurn = -1
         } else if (event.type === 'assistant/message') {
           messages += 1
           const source = event.data?.message?.source
@@ -281,6 +337,24 @@ async function sessionsPayload() {
           tokens += event.data?.usage?.totalTokens || 0
         }
       }
+      // Waiting outranks working: an approval prompt blocks the turn, so the
+      // session is neither running nor finished until it is answered.
+      const waiting = askedApproval > decidedApproval && askedApproval > openedTurn
+      const fresh = Date.now() - stat.mtimeMs < STALE_TURN_MS
+      const active = openedTurn >= 0 && fresh
+      const ended = lastEnd !== null && lastEnd.seq > openedTurn ? lastEnd : null
+      // An open turn on a cold file is a turn that never got to write its end.
+      const abandoned = openedTurn >= 0 && !fresh
+      // Declared before the chain that reads them: `const` does not hoist, and
+      // a later declaration here throws at runtime rather than at parse time.
+      const cancelled = ended !== null && ended.kind === 'aborted' && CANCELLED_CAUSES.has(ended.cause)
+      const failed = ended !== null && FAILURE_KINDS.has(ended.kind) ? ended : null
+      let state = 'idle'
+      if (waiting) state = 'waiting'
+      else if (active) state = 'running'
+      else if (abandoned) state = 'error'
+      else if (failed !== null) state = 'error'
+      else if (cancelled) state = 'stopped'
       rows.push({
         id: dir.name,
         cwd,
@@ -289,12 +363,22 @@ async function sessionsPayload() {
         messages,
         tokens,
         updatedAt: stat.mtimeMs,
-        active: Date.now() - stat.mtimeMs < 120_000,
+        active,
+        state,
+        // A session can be open and still be blocked (an approval inside a
+        // live turn), so the two are reported separately.
+        severity: failed !== null
+          ? (LIMIT_RE.test(failed.error || '') ? 'limit' : 'fatal')
+          : abandoned
+            ? 'stale'
+            : null,
+        lastError: failed !== null && failed.error !== null ? failed.error : null,
+        endedAt: ended !== null ? ended.at : null,
       })
     }
   }
   rows.sort((a, b) => b.updatedAt - a.updatedAt)
-  const value = { rows, at: Date.now() }
+  const value = { rows, unreadable, at: Date.now() }
   sessionCache = { at: Date.now(), value }
   return value
 }
@@ -496,18 +580,87 @@ function dayOf(ms) {
 }
 
 /**
+ * User-supplied price table, `{ "<provider>/<model>": { input, cacheRead,
+ * output } }` in USD per million tokens, or `{}` when none was written.
+ *
+ * DSH ships no prices, and a hardcoded table would be wrong for Nous,
+ * CommandCode and OmniRoute the day it was written. An unpriced model
+ * deliberately reports no cost rather than a number that looks authoritative.
+ */
+async function readPrices() {
+  try {
+    const parsed = JSON.parse(await fs.readFile(PRICES, 'utf8'))
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+    const out = {}
+    for (const [key, value] of Object.entries(parsed)) {
+      if (value === null || typeof value !== 'object') continue
+      const price = {}
+      for (const field of ['input', 'cacheRead', 'output']) {
+        const n = Number(value[field])
+        if (Number.isFinite(n) && n >= 0) price[field] = n
+      }
+      if (Object.keys(price).length > 0) out[key.toLowerCase()] = price
+    }
+    return out
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * Replace the price table.
+ *
+ * Prices are the user's, never the plugin's: no provider this panel reports on
+ * publishes a per-token number the kit could verify, so an absent row costs
+ * `null` and is counted as unpriced rather than guessed at.
+ */
+async function writePrices(input) {
+  if (input === null || typeof input !== 'object' || Array.isArray(input)) {
+    throw new Error('prices must be an object of "<provider>/<model>" keys')
+  }
+  const clean = {}
+  for (const [key, value] of Object.entries(input)) {
+    if (typeof key !== 'string' || !key.includes('/')) continue
+    if (value === null || typeof value !== 'object') continue
+    const price = {}
+    for (const field of ['input', 'cacheRead', 'output']) {
+      const n = Number(value[field])
+      if (Number.isFinite(n) && n >= 0) price[field] = n
+    }
+    if (Object.keys(price).length > 0) clean[key.toLowerCase()] = price
+  }
+  await fs.mkdir(path.dirname(PRICES), { recursive: true })
+  await fs.writeFile(PRICES, `${JSON.stringify(clean, null, 2)}\n`, 'utf8')
+  return clean
+}
+
+/** Cost in USD, or null when this provider/model has no user-supplied price. */
+function costOf(prices, provider, model, usage) {
+  const price = prices[`${String(provider).toLowerCase()}/${String(model).toLowerCase()}`]
+  if (price === undefined) return null
+  // inputTokens excludes cache, so every bucket is billed on its own rate.
+  const input = Number(usage.inputTokens) || 0
+  const cache = Number(usage.cacheReadTokens) || 0
+  const output = Number(usage.outputTokens) || 0
+  const total = (input * (price.input || 0)) + (cache * (price.cacheRead || 0)) + (output * (price.output || 0))
+  return total / 1_000_000
+}
+
+/**
  * Usage analytics over the session logs: tokens, messages, tool calls and
  * errors per day, per model and per tool. Tokens are what the provider
- * reported; there is no price table here, so no cost is invented.
+ * reported; cost appears only for models named in `~/.dsh/toolbox/prices.json`,
+ * so an unpriced model reports `null` instead of a made-up number.
  */
 async function insightsPayload(days) {
   const window = Math.max(1, Math.min(365, Number(days) || 30))
   const cutoff = Date.now() - window * 86_400_000
   const files = (await allSessionFiles()).filter((entry) => entry.mtime >= cutoff)
+  const prices = await readPrices()
   const daily = new Map()
   const models = new Map()
   const tools = new Map()
-  const totals = { sessions: 0, messages: 0, userMessages: 0, input: 0, output: 0, cache: 0, tools: 0, errors: 0 }
+  const totals = { sessions: 0, messages: 0, userMessages: 0, input: 0, output: 0, cache: 0, tools: 0, errors: 0, cost: 0, unpriced: 0 }
   const bucket = (map, key, seed) => {
     if (!map.has(key)) map.set(key, seed())
     return map.get(key)
@@ -539,7 +692,12 @@ async function insightsPayload(days) {
         totals.input += input
         totals.output += output
         totals.cache += cache
-        const d = bucket(daily, day, () => ({ date: day, messages: 0, input: 0, output: 0, cache: 0, tools: 0, errors: 0 }))
+        const cost = source.provider && source.model ? costOf(prices, source.provider, source.model, usage) : null
+        if (cost === null) totals.unpriced += 1
+        else totals.cost += cost
+        const d = bucket(daily, day, () => ({ date: day, messages: 0, input: 0, output: 0, cache: 0, tools: 0, errors: 0, cost: 0, priced: 0, unpriced: 0 }))
+        if (cost === null) d.unpriced += 1
+        else { d.cost += cost; d.priced += 1 }
         d.messages += 1
         d.input += input
         d.output += output
@@ -547,7 +705,9 @@ async function insightsPayload(days) {
         if (source.provider && source.model) {
           const key = `${source.provider}\u0000${source.model}`
           activeModel = key
-          const m = bucket(models, key, () => ({ provider: source.provider, model: source.model, messages: 0, input: 0, output: 0, cache: 0, errors: 0 }))
+          const m = bucket(models, key, () => ({ provider: source.provider, model: source.model, messages: 0, input: 0, output: 0, cache: 0, errors: 0, cost: 0, priced: 0, unpriced: 0 }))
+          if (cost === null) m.unpriced += 1
+          else { m.cost += cost; m.priced += 1 }
           m.messages += 1
           m.input += input
           m.output += output
@@ -584,6 +744,7 @@ async function insightsPayload(days) {
   const days_ = [...daily.values()].sort((a, b) => a.date.localeCompare(b.date))
   return {
     window,
+    priced: Object.keys(prices).length,
     scanned: files.length,
     totals,
     daily: days_,
@@ -1017,5 +1178,24 @@ export function apply(ctx) {
         },
       }),
     'toolbox: board route',
+  )
+
+  ctx.effect(
+    () =>
+      ctx.connection.fetch.register({
+        path: '/api/toolbox/prices',
+        methods: ['GET', 'POST'],
+        requestBody: 'buffered',
+        fetch: async (request) => {
+          try {
+            if (request.method === 'GET') return json(await readPrices())
+            const saved = await writePrices(await request.json())
+            return json({ ok: true, saved })
+          } catch (error) {
+            return failure(error, 400)
+          }
+        },
+      }),
+    'toolbox: prices route',
   )
 }
