@@ -1736,6 +1736,6 @@ window.__ModuleLoader__.load({
       )
     }
 
-    return { inject: ['slots', 'locale', 'remote', 'remote.session', 'sessions'], apply }
+    return { inject: ['slots', 'locale', 'remote', 'remote.session', 'sessions', 'workspaces'], apply }
   },
 })

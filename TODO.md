@@ -2,7 +2,7 @@
 
 ## Next
 
-- [ ] Session import from ChatGPT / Claude exports (needs a validated session-file writer; verify with a relaunch)
+- [ ] Session import from ChatGPT / Claude exports — **blocked, not shipped.** A hand-written log passes the persistence validators (two zstd frames with the header alone in the first, `turn/start`+`step/start` around each message, `surfaceOp` at the event root, `request/header` with a `reason`, `stream: []` on assistant messages, a `system/message` as the protected first surface node) and the workspace can attach it, but the client's projection pass still throws `Cannot read properties of undefined (reading 'kind')`. `readSession`, `readTitle`, `readSurface` and `listEvents` all succeed on the same file, so the failing projection only runs in the `session/projections` path. Creating the session through `ctx.sessions.create` with a seed is refused by the store's inherited-cut rule and never persists. Needs a Host-side import API, not a file writer.
 - [ ] Dojo: proposals the agent can act on without a human reading a markdown file (needs a review surface)
 - [x] Command Center: Open, Stop, Message (steer/queue)
 - [ ] Command Center actions: open, steer, stop (needs the live session projection API, not just log files)
