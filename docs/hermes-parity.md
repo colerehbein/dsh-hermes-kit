@@ -38,6 +38,19 @@ Source: Hermes desktop's project/workspace views.
 - Registers `sidebar.panellist`, `sidebar.session.row.hover`, and `main` slots; Host half exposes three read-only `/api/projects-page/*` routes.
 - The published package ships an empty fallback roster — a project list is personal, so it comes from your registry.
 
+## Self-improvement and memory retention
+
+These were the two largest omissions in the first pass, and the first pass called the port complete anyway. Both now exist as CLIs in `tools/dsh-kit`, not as UI.
+
+| Hermes behaviour | DSH port |
+| --- | --- |
+| Dojo mines past sessions for recurring failures and patches skills | `dojo` mines tool-error signatures, identical calls repeated 3+ times, and frustration turns. It writes a report and proposals; it does **not** patch skills. |
+| Memory retention across sessions | `mem` stores notes; `mem-consolidate` mines finished transcripts for standing rules and republishes the injected brief. |
+| Automatic application of what was learned | Deliberately absent. `dojo` auto-applies only a memory lesson for a repeatedly failing tool. A loop that rewrites its own instructions unattended is how an agent degrades. |
+| Scheduled self-review | Not shipped. Run `dojo` after a bad session; a schedule nobody reads is theatre. |
+
+Both tools read `~/.dsh/sessions/**/session.v4.jsonl.zstd` and both depend on one rule: only `user/message` events with `source.kind == "user"` are human speech. Everything else in a transcript — system reminders, the skill catalogue, time context, model-change notices — is injected context, and treating it as user speech makes the frustration detector fire on its own reminders.
+
 ## Slot mechanics worth knowing
 
 `conversation.input.model` is a **single** slot. Registration is ordered by `priority` ascending and the lowest-priority entry renders; two entries at the same priority throw. The picker uses `priority: -1` to shadow the shipped `ModelSelect` while leaving its `modelDirectories` service in place.

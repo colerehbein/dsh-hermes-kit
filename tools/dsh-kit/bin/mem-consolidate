@@ -1,0 +1,243 @@
+#!/usr/bin/env python3
+"""mem-consolidate — automatic memory retention.
+
+Mines finished DSH sessions for durable user statements (preferences,
+corrections, standing rules) and writes them into the persistent memory
+store, then republishes the injected brief.
+
+  mem-consolidate                 # last 3 days, apply
+  mem-consolidate --days 7        # wider window
+  mem-consolidate --dry-run       # show what would be added, write nothing
+
+State: $DSH_HOME/memory/consolidate-state.json (session id -> mtime seen)
+Log:   $DSH_HOME/memory/consolidate.log
+"""
+import argparse
+import json
+import os
+import re
+import sqlite3
+import subprocess
+import sys
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+
+DSH = Path(os.environ.get("DSH_HOME", "~/.dsh")).expanduser()
+SESSIONS = DSH / "sessions"
+MEM = DSH / "bin" / "mem"
+DB = DSH / "memory" / "memory.db"
+STATE = DSH / "memory" / "consolidate-state.json"
+LOG = DSH / "memory" / "consolidate.log"
+BRIEF = DSH / "bin" / "install-brief"
+
+# Standing-behavior markers only: a preference or rule, not a reaction or a task.
+SIGNAL_POS = re.compile(
+    r"\b(never|always|from now on|every time|next time|remember|prefer|"
+    r"no more|keep it|must always|must use)\b",
+    re.I,
+)
+# "don't/do not" only signals a rule when it commands a verb.
+SIGNAL_NEG = re.compile(
+    r"\b(?:don'?t|do not)\s+(?:ever\s+)?(?:use|do|tell|suggest|mention|write|say|"
+    r"assume|forget|call|run|add|change|include|put|make|start|stop|touch|"
+    r"delete|send|ask|treat|push|skip)\b",
+    re.I,
+)
+# Reactions, not rules.
+REACTION = re.compile(r"\bi (?:don'?t|do not) (?:think|know|like|want|understand)\b", re.I)
+# Scoped to right now — expires, so not durable.
+TEMPORAL = re.compile(r"\b(yet|for now|this time|right now|today|tonight|just now)\b", re.I)
+# Questions are usually one-off; a standing rule rarely ends in "?".
+SKIP_QUERY = re.compile(r"^\s*(what|why|how|when|where|who|which|can|could|would|is|are|do|does|did)\b", re.I)
+# Task instructions arriving as imperatives are one-off work, not memory.
+SKIP_IMPERATIVE = re.compile(
+    r"^\s*(build|make|create|update|fix|write|add|run|install|show|render|include|"
+    r"delete|remove|change|move|give me|help me|reply|do |please|scan|check|find)\b",
+    re.I,
+)
+PROFANITY = re.compile(r"\b(fuck\w*|shit\w*|wtf|damn|hell)\b", re.I)
+NOTICE = re.compile(r"^(the user changed|\[model changed|system:|time sampled)", re.I)
+
+
+def quality_ok(t):
+    """Precision gate — a bad note poisons every future session's brief."""
+    if not (30 <= len(t) <= 400):
+        return False
+    if t.endswith("?"):
+        return False
+    if PROFANITY.search(t):
+        return False          # frustration belongs to dojo, not memory
+    letters = [c for c in t if c.isalpha()]
+    if letters and sum(c.isupper() for c in letters) / len(letters) > 0.5:
+        return False          # shouting
+    if NOTICE.search(t):
+        return False
+    if SKIP_QUERY.match(t) or SKIP_IMPERATIVE.match(t):
+        return False
+    if REACTION.search(t):
+        return False
+    if TEMPORAL.search(t):
+        return False
+    return True
+
+
+def read_zstd(path):
+    try:
+        from compression import zstd
+        return zstd.decompress(Path(path).read_bytes()).decode("utf-8", "replace")
+    except Exception:
+        pass
+    try:
+        return subprocess.run(["zstd", "-dc", str(path)], capture_output=True,
+                              check=True, timeout=120).stdout.decode("utf-8", "replace")
+    except Exception:
+        return None
+
+
+def user_texts(text):
+    """Yield (time_ms, text) for genuine user messages."""
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or '"user/message"' not in line:
+            continue
+        try:
+            e = json.loads(line)
+        except Exception:
+            continue
+        if e.get("type") != "user/message":
+            continue
+        d = e.get("data") or {}
+        # only the human's own words; the rest are injected context
+        if ((d.get("source") or {}).get("kind")) != "user":
+            continue
+        parts = []
+        for c in d.get("content") or []:
+            if isinstance(c, dict) and c.get("type") == "text":
+                parts.append(c.get("text") or "")
+        if not parts:
+            m = d.get("message") or {}
+            for c in m.get("content") or []:
+                if isinstance(c, dict) and c.get("type") == "text":
+                    parts.append(c.get("text") or "")
+        t = " ".join(parts).strip()
+        if t:
+            yield e.get("time") or 0, t
+
+
+def clean(t):
+    t = re.sub(r"\s+", " ", t).strip()
+    t = re.sub(r"^\[[^\]]*\]\s*", "", t)  # strip [model changed] style prefixes
+    return t
+
+
+def existing_texts():
+    try:
+        db = sqlite3.connect("file:%s?mode=ro" % DB, uri=True)
+        rows = [r[0] for r in db.execute("select text from note")]
+        db.close()
+        return rows
+    except Exception:
+        return []
+
+
+def norm(s):
+    return re.sub(r"[^a-z0-9]+", " ", s.lower()).strip()
+
+
+def is_duplicate(candidate, existing_norm):
+    n = norm(candidate)
+    if n in existing_norm:
+        return True
+    # crude containment: a long existing note already captures it
+    for e in existing_norm:
+        if len(n) > 20 and (n in e or e in n) and abs(len(n) - len(e)) < 60:
+            return True
+    return False
+
+
+def record_state(state, sid, mtime):
+    state[sid] = mtime
+    STATE.parent.mkdir(parents=True, exist_ok=True)
+    STATE.write_text(json.dumps(state, indent=1, sort_keys=True))
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--days", type=int, default=3)
+    ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--cap", type=int, default=12)
+    a = ap.parse_args()
+
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=a.days)).timestamp()
+    try:
+        state = json.loads(STATE.read_text())
+    except Exception:
+        state = {}
+
+    existing = existing_texts()
+    existing_norm = {norm(x) for x in existing}
+
+    candidates = []
+    for path in sorted(SESSIONS.glob("*/session-*/session.v4.jsonl.zstd")):
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            continue
+        if mtime < cutoff:
+            continue
+        sid = path.parent.name
+        if state.get(sid) and abs(state[sid] - mtime) < 1:
+            continue  # already consolidated at this mtime
+        text = read_zstd(path)
+        if not text:
+            continue
+        for _t, raw in user_texts(text):
+            t = clean(raw)
+            if not quality_ok(t):
+                continue
+            if not (SIGNAL_POS.search(t) or SIGNAL_NEG.search(t)):
+                continue
+            if is_duplicate(t, existing_norm):
+                continue
+            candidates.append((sid, t))
+
+    # de-dupe within this run, prefer earliest occurrence
+    seen = set()
+    picked = []
+    for sid, t in candidates:
+        n = norm(t)
+        if n in seen:
+            continue
+        seen.add(n)
+        picked.append((sid, t))
+    picked = picked[: a.cap]
+
+    if not picked:
+        print("nothing new to consolidate")
+        return
+
+    for sid, t in picked:
+        if a.dry_run:
+            print("WOULD ADD [%s] %s" % (sid[:20], t[:140]))
+            continue
+        kind = "pref" if re.search(r"\b(prefer|always|never|only|must|use)\b", t, re.I) else "lesson"
+        r = subprocess.run([str(MEM), "add", t, "--kind", kind,
+                            "--tags", "auto-consolidated"],
+                           capture_output=True, text=True)
+        print(("ADDED  " if r.returncode == 0 else "FAILED ") + t[:120] +
+              ("" if r.returncode == 0 else " :: " + (r.stderr or "").strip()[:120]))
+
+    if not a.dry_run:
+        for sid, _ in picked:
+            try:
+                mtime = next((p.stat().st_mtime for p in SESSIONS.glob("*/%s/session.v4.jsonl.zstd" % sid)), None)
+            except OSError:
+                mtime = None
+            if mtime:
+                record_state(state, sid, mtime)
+        for cmd in ([str(MEM), "brief"], [str(BRIEF)]):
+            subprocess.run(cmd, capture_output=True)
+        print("brief republished; %d notes added" % len(picked))
+
+
+main()

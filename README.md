@@ -1,6 +1,6 @@
 # dsh-hermes-kit
 
-Three [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugins that replace weak surfaces with Hermes desktop's versions — a searchable model picker with favorites and per-model reasoning, a Projects view, and a Toolbox panel (skills, provider health, kanban) — plus the CLI kit the harness was missing: durable memory, restore-safe checkpoints, and evidence about which skills actually fire.
+Three [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugins that replace weak surfaces with Hermes desktop's versions — a searchable model picker with favorites and per-model reasoning, a Projects view, and a Toolbox panel (skills, provider health, kanban) — plus the CLI kit the harness was missing: durable memory that consolidates itself, a self-improvement loop over real transcripts, restore-safe checkpoints, and evidence about which skills actually fire.
 
 ![The model picker](docs/images/model-picker.png)
 
@@ -39,10 +39,14 @@ Needs `bash`, `python3`, and an existing DSH profile.
 | `mem` | SQLite+FTS5 memory across sessions: `add`, `search`, `brief`, `forget`. `install-brief` feeds the brief into `~/.dsh/AGENTS.md`, so every new session starts with it. |
 | `ckpt` | Shadow-git snapshots stored outside the workspace — `git reset --hard` cannot destroy them. |
 | `curator` | Reads `~/.dsh/sessions/**/*.jsonl.zstd` and reports skill loads, tool error rates, and skills that never fire. |
+| `mem-consolidate` | Automatic memory retention: mines finished transcripts for standing rules the user stated, gates them for precision, writes the survivors, republishes the brief. |
+| `dojo` | Self-improvement over real transcripts: tool-error signatures, identical calls repeated 3+ times, and frustration turns — into a report plus reviewable proposals. |
 | `proj` | Imports a Hermes `projects.db` into `~/.dsh/projects/projects.json` — the registry the Projects page reads. |
 | `extras/skill-audit` | Inventories a skill library, finds duplicate and broken entries, plans a retirement with a dry run. |
 
-Three skills (`dsh-memory`, `dsh-checkpoints`, `dsh-curator`) ship with the CLIs, so the agent knows when to reach for each tool.
+Four skills (`dsh-memory`, `dsh-dojo`, `dsh-checkpoints`, `dsh-curator`) ship with the CLIs, so the agent knows when to reach for each tool.
+
+`mem-consolidate` and `dojo` are the two pieces that make the kit improve itself rather than just record. Both read the same transcripts, and both refuse to act on injected context: only `user/message` events with `source.kind == "user"` count as human speech, because everything else in a transcript is a system reminder, a skill catalogue, or a time stamp. `dojo` never edits a skill or an instruction file on its own — it writes proposals for a human to accept.
 
 ## The model picker
 
@@ -121,8 +125,8 @@ rm -rf ~/.dsh/profiles/<profile>/created-plugins/model-picker \
 rm ~/.dsh/profiles/<profile>/node_modules/@dsh-local/{hermes-model-picker,projects-page}
 
 # CLIs
-rm ~/.dsh/bin/{mem,ckpt,curator,proj,import-memory,install-brief}
-rm -rf ~/.dsh/skills/{dsh-memory,dsh-checkpoints,dsh-curator}
+rm ~/.dsh/bin/{mem,mem-consolidate,dojo,ckpt,curator,proj,import-memory,install-brief}
+rm -rf ~/.dsh/skills/{dsh-memory,dsh-dojo,dsh-checkpoints,dsh-curator}
 ```
 
 Data stays under `~/.dsh/{memory,curator,checkpoints,projects}`.

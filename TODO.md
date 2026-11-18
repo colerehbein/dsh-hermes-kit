@@ -3,6 +3,7 @@
 ## Next
 
 - [ ] Session import from ChatGPT / Claude exports (needs a validated session-file writer; verify with a relaunch)
+- [ ] Dojo: proposals the agent can act on without a human reading a markdown file (needs a review surface)
 - [x] Command Center: Open, Stop, Message (steer/queue)
 - [ ] Command Center actions: open, steer, stop (needs the live session projection API, not just log files)
 
@@ -12,6 +13,10 @@
 - [ ] Publish the plugin packages to npm (optional; `file:` install works today)
 
 ## Done
+
+- [x] `mem-consolidate` — automatic memory retention over finished transcripts
+- [x] `dojo` — self-improvement loop: tool errors, churn, frustration turns
+- [x] `dsh-dojo` skill; consolidation documented in `dsh-memory`
 
 - [x] Model picker with favorites, collapsible providers, reasoning levels, Edit models
 - [x] Projects page

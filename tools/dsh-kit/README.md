@@ -1,17 +1,19 @@
 # dsh-kit
 
-Three things the DeepSeek Harness was missing: **memory that survives a session**, **snapshots you can restore**, and **evidence about which skills actually fire** — plus a small registry helper and a skill-library audit.
+Five things the DeepSeek Harness was missing: **memory that survives a session and consolidates itself**, **a self-improvement loop over real transcripts**, **snapshots you can restore**, and **evidence about which skills actually fire** — plus a small registry helper and a skill-library audit.
 
 Pure Python 3, standard library only. Installs into `$DSH_HOME` (`~/.dsh` by default).
 
 | Tool | Command | Store |
 | --- | --- | --- |
 | Memory | `~/.dsh/bin/mem` | `~/.dsh/memory/memory.db` (SQLite + FTS5) |
+| Retention | `~/.dsh/bin/mem-consolidate` | `~/.dsh/memory/consolidate-state.json` |
+| Self-improvement | `~/.dsh/bin/dojo` | `~/.dsh/curator/{dojo-report.md,dojo-proposals.md}` |
 | Checkpoints | `~/.dsh/bin/ckpt` | `~/.dsh/checkpoints/<slug>/repo.git` (shadow git) |
 | Curator | `~/.dsh/bin/curator` | `~/.dsh/curator/{stats.json,report.md}` |
 | Projects | `~/.dsh/bin/proj` | `~/.dsh/projects/projects.json` |
 
-The three skills (`dsh-memory`, `dsh-checkpoints`, `dsh-curator`) are installed into the skill catalogue and load on demand, so the agent knows when to reach for each tool without being told every session.
+The four skills (`dsh-memory`, `dsh-dojo`, `dsh-checkpoints`, `dsh-curator`) are installed into the skill catalogue and load on demand, so the agent knows when to reach for each tool without being told every session.
 
 ## Memory
 
@@ -29,6 +31,35 @@ Kinds: `fact`, `pref`, `decision`, `person`, `project`, `lesson`. Exact-text dup
 **Injection.** `install-brief` writes a managed block into `~/.dsh/AGENTS.md`, the user-global instruction file loaded at the first request of every session — every workspace, no restart. After `mem brief`, run `install-brief`; the next session carries it. `install-brief --remove` takes it back out and leaves the rest of the file untouched.
 
 **Importing.** `import-memory --dir ~/hermes-export` reads `MEMORY.md` / `USER.md` blocks separated by a lone `§`, classifies each block, and pins the hard rules.
+
+## Automatic retention
+
+```sh
+mem-consolidate --days 3 --dry-run   # candidates, nothing written
+mem-consolidate --days 7             # apply, then republish the brief
+```
+
+Mines finished transcripts for standing rules the user stated. The precision gate is the point: it skips questions, imperatives, reactions, profanity, shouting, and anything scoped to "right now", because one bad note poisons the brief injected into every future session. It reads only `user/message` events whose `source.kind` is `user` — every other message in a transcript is injected context, not human speech. A session is consolidated once per mtime, tracked in `consolidate-state.json`.
+
+It is a catch-net, not a replacement for writing a note when you notice one: high precision, low recall by design.
+
+## Self-improvement
+
+```sh
+dojo                 # last 7 days
+dojo --days 14
+dojo --report-only   # write the report, apply no lessons
+```
+
+Three findings, all from real transcripts:
+
+1. **Tool errors** — grouped by tool and signature line. A traceback header is replaced by the last exception line, and a bare `[exit code: 1]` is prefixed with the last meaningful line, because neither identifies a failure on its own.
+2. **Churn** — the same tool call with identical arguments three or more times in one session. That is the shape of re-deriving a fact the agent already had.
+3. **Frustration turns** — a user message with strong negative feedback, plus the three tool calls that preceded it.
+
+Writes `dojo-report.md` and `dojo-proposals.md`. **It never edits a skill or an instruction file on its own** — a loop that silently rewrites its own instructions is how an agent gets worse. The one automatic action is a memory lesson for a tool that failed repeatedly, which `mem forget` reverses.
+
+A tool result is attributed through `data.message.toolCallId`; a failure that cannot be attributed is dropped rather than guessed at.
 
 ## Checkpoints
 
@@ -75,8 +106,8 @@ This is the evidence half of skill maintenance: the curator says what fires, the
 
 ```text
 dsh-kit/
-  bin/{mem,ckpt,curator,proj,import-memory,install-brief}
-  skills/dsh-{memory,checkpoints,curator}/SKILL.md
+  bin/{mem,mem-consolidate,dojo,ckpt,curator,proj,import-memory,install-brief}
+  skills/dsh-{memory,dojo,checkpoints,curator}/SKILL.md
   extras/skill-audit/{audit_skills.py,apply.py}
   install.sh                 # --dry-run supported
 ```

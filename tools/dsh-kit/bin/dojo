@@ -1,0 +1,268 @@
+#!/usr/bin/env python3
+"""dojo — self-improvement loop over real session transcripts.
+
+Mines finished DSH sessions for three kinds of friction:
+
+  1. tool errors        same tool failing repeatedly across sessions
+  2. churn              the same tool call repeated >=3x inside one session
+                        (re-deriving a fact the agent already had)
+  3. frustration turns  a user message carrying strong negative feedback
+
+Writes a report and proposals for human review; auto-applies only safe
+memory lessons (never edits skills or AGENTS.md on its own).
+
+  dojo                 # last 7 days
+  dojo --days 14
+  dojo --report-only
+
+Output:
+  $DSH_HOME/curator/dojo-report.md
+  $DSH_HOME/curator/dojo-proposals.md
+  $DSH_HOME/curator/dojo.log
+"""
+import argparse
+import json
+import os
+import re
+import subprocess
+import sys
+from collections import Counter, defaultdict
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+
+DSH = Path(os.environ.get("DSH_HOME", "~/.dsh")).expanduser()
+SESSIONS = DSH / "sessions"
+OUT = DSH / "curator"
+MEM = DSH / "bin" / "mem"
+LOG = OUT / "dojo.log"
+
+FRUSTRATION = re.compile(
+    r"\b(wtf|what the fuck|fucking|stupid|ridiculous|you suck|"
+    r"stop (?:what|doing|churning)|are you (?:fucking )?kidding|"
+    r"why (?:are|did) you|you (?:completely|totally) (?:ignored|missed)|"
+    r"that'?s (?:wrong|not what)|you'?re wrong|nonsense|garbage|"
+    r"throw(?:ing)? (?:time|money) away|wasting)\b",
+    re.I,
+)
+ERRORISH = re.compile(
+    r"(Traceback \(most recent call last\)|exit code: [1-9]|"
+    r"\bNo such file or directory\b|\bPermission denied\b|"
+    r"command not found|\bOperationalError\b|Error:)",
+)
+CHURN_REPEATS = 3
+
+
+def read_zstd(path):
+    try:
+        from compression import zstd
+        return zstd.decompress(Path(path).read_bytes()).decode("utf-8", "replace")
+    except Exception:
+        pass
+    try:
+        return subprocess.run(["zstd", "-dc", str(path)], capture_output=True,
+                              check=True, timeout=120).stdout.decode("utf-8", "replace")
+    except Exception:
+        return None
+
+
+def text_of(msg):
+    out = []
+    for c in (msg or {}).get("content") or []:
+        if isinstance(c, dict) and c.get("type") == "text":
+            out.append(c.get("text") or "")
+    return "\n".join(out)
+
+
+def scan(path):
+    """Return dict of findings for one session."""
+    text = read_zstd(path)
+    if not text:
+        return None
+    sid = path.parent.name
+    cwd = ""
+    try:
+        cwd = json.loads(text.splitlines()[0]).get("cwd") or ""
+    except Exception:
+        pass
+    errors = []
+    calls = []
+    users = []
+    tool_names = {}
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            e = json.loads(line)
+        except Exception:
+            continue
+        t = e.get("type")
+        d = e.get("data") or {}
+        if t == "tool/call":
+            calls.append((d.get("turn") or 0, d.get("name") or "?",
+                          str(d.get("arguments") or "")))
+            if d.get("callId"):
+                tool_names[d["callId"]] = d.get("name") or "?"
+        elif t == "tool/result":
+            m = d.get("message") or {}
+            body = text_of(m)
+            if ERRORISH.search(body):
+                cid = d.get("toolCallId") or m.get("toolCallId") or ((m.get("source") or {}).get("callId"))
+                name = tool_names.get(cid or "", "")
+                if not name:
+                    continue  # cannot attribute the failure to a tool
+                sig = ""
+                for ln in body.splitlines():
+                    if ERRORISH.search(ln):
+                        sig = ln.strip()[:120]
+                        break
+                # a traceback header carries no information; the real failure is the last exception line
+                if "Traceback" in sig:
+                    exc = [l.strip() for l in body.splitlines()
+                           if re.search(r"\b\w*(?:Error|Exception)\b\s*:", l)]
+                    sig = (exc[-1] if exc else sig)[:140]
+                # "[exit code: 1]" alone says nothing; prepend the last meaningful line
+                if sig.startswith("[exit code"):
+                    prev = [x.strip() for x in body.splitlines()
+                            if x.strip() and not x.strip().startswith("[exit code")]
+                    sig = (prev[-1][:80] + " " + sig) if prev else sig
+                errors.append((name, sig[:140]))
+        elif t == "user/message":
+            if ((d.get("source") or {}).get("kind")) != "user":
+                continue  # injected context, not human speech
+            txt = ""
+            for c in d.get("content") or []:
+                if isinstance(c, dict) and c.get("type") == "text":
+                    txt += (c.get("text") or "")
+            if txt.strip():
+                users.append((e.get("seq") or 0, txt.strip()))
+    c = Counter((n, a) for _t, n, a in calls)
+    churn = [(n, a, k) for (n, a), k in c.items() if k >= CHURN_REPEATS]
+    frust = []
+    for _seq, txt in users:
+        if FRUSTRATION.search(txt):
+            frust.append((txt, [p[1] for p in calls[-3:]]))
+    return dict(sid=sid, cwd=cwd, errors=errors, churn=churn,
+                frust=frust, calls=len(calls))
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--days", type=int, default=7)
+    ap.add_argument("--report-only", action="store_true")
+    a = ap.parse_args()
+    OUT.mkdir(parents=True, exist_ok=True)
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=a.days)).timestamp()
+
+    totals = Counter()
+    err_by_tool = Counter()
+    err_sigs = defaultdict(Counter)
+    churn_by_tool = Counter()
+    churn_samples = []
+    frust_rows = []
+    sessions = 0
+    for path in sorted(SESSIONS.glob("*/session-*/session.v4.jsonl.zstd")):
+        try:
+            if path.stat().st_mtime < cutoff:
+                continue
+        except OSError:
+            continue
+        r = scan(path)
+        if not r or not (r["errors"] or r["churn"] or r["frust"]):
+            continue
+        sessions += 1
+        totals["calls"] += r["calls"]
+        totals["errors"] += len(r["errors"])
+        totals["churn"] += len(r["churn"])
+        totals["frust"] += len(r["frust"])
+        for name, sig in r["errors"]:
+            err_by_tool[name] += 1
+            err_sigs[name][sig] += 1
+        for name, arg, k in r["churn"]:
+            churn_by_tool[name] += 1
+            if len(churn_samples) < 12:
+                churn_samples.append((r["sid"], name, arg, k))
+        for txt, prev in r["frust"]:
+            frust_rows.append((r["sid"], txt, prev))
+
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    lines = ["# Dojo report — %s" % now, "",
+             "Window: last %d days · %d sessions with friction · %d tool calls"
+             % (a.days, sessions, totals["calls"]), ""]
+    lines += ["## Tool errors by tool", ""]
+    if err_by_tool:
+        lines += ["| Tool | Errors | Most common signature |", "|---|---|---|"]
+        for tool, n in err_by_tool.most_common(12):
+            sig = err_sigs[tool].most_common(1)[0][0] if err_sigs[tool] else ""
+            lines.append("| %s | %d | `%s` |" % (tool, n, sig.replace("|", "\\|")[:100]))
+    else:
+        lines.append("_none_")
+    lines += ["", "## Churn — identical calls repeated >=%d times in one session" % CHURN_REPEATS, ""]
+    if churn_by_tool:
+        lines += ["| Tool | Hotspots |", "|---|---|"]
+        for tool, n in churn_by_tool.most_common(10):
+            lines.append("| %s | %d |" % (tool, n))
+        lines += ["", "Samples:", ""]
+        for sid, name, arg, k in churn_samples:
+            lines.append("- `%s` x%d — %s: %s" % (name, k, sid[:18], arg[:110]))
+    else:
+        lines.append("_none_")
+    lines += ["", "## Frustration turns", ""]
+    if frust_rows:
+        for sid, txt, prev in frust_rows[:12]:
+            lines.append("- **%s** — \"%s\" (preceding: %s)"
+                         % (sid[:18], txt[:120].replace("\n", " "), ", ".join(prev)))
+    else:
+        lines.append("_none_")
+    report = OUT / "dojo-report.md"
+    report.write_text("\n".join(lines) + "\n")
+
+    props = ["# Dojo proposals — %s" % now, "",
+             "Review these. Nothing here was applied automatically.", ""]
+    if err_by_tool:
+        props.append("## 1. Recurring tool failures")
+        for tool, n in err_by_tool.most_common(5):
+            sig = err_sigs[tool].most_common(1)[0][0]
+            props.append("- **%s** failed %d times; top signature: `%s`." % (tool, n, sig[:100]))
+            props.append("  - Consider a precondition check in the tool description or a skill note.")
+        props.append("")
+    if churn_by_tool:
+        props.append("## 2. Churn hotspots")
+        for tool, n in churn_by_tool.most_common(5):
+            props.append("- **%s**: %d sessions had identical repeated calls." % (tool, n))
+        props.append("  - Fold the repeated step into a skill or a one-shot command.")
+        props.append("")
+    if frust_rows:
+        props.append("## 3. Frustration → instruction candidates")
+        for sid, txt, _prev in frust_rows[:6]:
+            props.append("- From %s: \"%s\"" % (sid[:18], txt[:140].replace("\n", " ")))
+        props.append("  - Turn the strongest ones into a standing rule (memory or AGENTS.md).")
+    props_path = OUT / "dojo-proposals.md"
+    props_path.write_text("\n".join(props) + "\n")
+
+    applied = 0
+    if not a.report_only:
+        for tool, n in err_by_tool.most_common(3):
+            if n < 2:
+                continue
+            sig = err_sigs[tool].most_common(1)[0][0][:90]
+            note = ("Dojo lesson: tool %s has failed repeatedly; common failure: %s. "
+                    "Check preconditions before calling." % (tool, sig))
+            ex = subprocess.run([str(MEM), "add", note, "--kind", "lesson",
+                                 "--tags", "dojo,auto"], capture_output=True, text=True)
+            if ex.returncode == 0:
+                applied += 1
+        if applied:
+            subprocess.run([str(MEM), "brief"], capture_output=True)
+            subprocess.run([str(DSH / "bin" / "install-brief")], capture_output=True)
+
+    with LOG.open("a") as f:
+        f.write("%s sessions=%d errors=%d churn=%d frust=%d lessons=%d\n" % (
+            now, sessions, totals["errors"], totals["churn"], totals["frust"], applied))
+    print("sessions with friction: %d | errors: %d | churn: %d | frustration: %d | lessons applied: %d"
+          % (sessions, totals["errors"], totals["churn"], totals["frust"], applied))
+    print("report:    %s" % report)
+    print("proposals: %s" % props_path)
+
+
+main()

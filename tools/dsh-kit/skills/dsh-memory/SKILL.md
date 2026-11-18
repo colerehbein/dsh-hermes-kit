@@ -30,6 +30,23 @@ Never store secrets, tokens, one-off task state, or anything the user asked to f
     ~/.dsh/bin/mem forget <id>...
     ~/.dsh/bin/mem stats
 
+## Automatic retention
+
+`mem-consolidate` mines finished session transcripts for standing rules the user stated and
+writes the ones that pass a precision gate, then republishes the brief:
+
+    ~/.dsh/bin/mem-consolidate --days 3 --dry-run   # show candidates, write nothing
+    ~/.dsh/bin/mem-consolidate --days 7             # apply
+
+It only reads `user/message` events whose `source.kind` is `user` — every other message in a
+transcript is injected context (system reminders, skill catalogues, time context) and is not
+human speech. It skips questions, imperatives, reactions, profanity and anything scoped to
+"right now", because a bad note poisons every future session's brief. State lives in
+`~/.dsh/memory/consolidate-state.json`, so a session is consolidated once per mtime.
+
+It is a catch-net, not a replacement for writing a note when you notice one: the rules are
+high-precision and low-recall by design.
+
 ## Rules
 
 - One note is one standalone sentence. It has to make sense with no conversation around it.
