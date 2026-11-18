@@ -76,7 +76,42 @@ window.__ModuleLoader__.load({
 .tbx-check{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--dsw-alias-label-secondary);cursor:pointer}
 .tbx-copies{flex:none;border:1px solid var(--dsw-alias-border-l2);border-radius:999px;padding:0 5px;font-size:10px;line-height:15px;color:var(--dsw-alias-label-secondary)}
 .tbx-drop{height:2px;margin:2px 0;border-radius:2px;background:var(--dsw-alias-state-business-primary)}
-.tbx-editCard{border:1px solid var(--dsw-alias-state-business-primary);border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-bg-layer-2);padding:5px 7px;font-size:12px;width:100%;box-sizing:border-box;color:inherit;font-family:inherit;resize:vertical;min-height:34px;outline:none}
+.tbx-editCard{display:flex;flex-direction:column;gap:5px;border:1px solid var(--dsw-alias-state-business-primary);border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-bg-layer-2);padding:5px 7px;width:100%;box-sizing:border-box}
+.tbx-editCard textarea{width:100%;box-sizing:border-box;border:none;background:0 0;color:inherit;font:inherit;font-size:12px;resize:vertical;min-height:34px;outline:none}
+.tbx-bulk{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 8px;margin:4px 0;border:1px solid var(--dsw-alias-state-business-primary);border-radius:var(--dsw-radius-md);background:var(--dsw-alias-bg-layer-1)}
+.tbx-prio{flex:none;width:6px;height:6px;border-radius:50%;margin-right:2px}
+.tbx-cardCheck{flex:none;margin:0 2px 0 0;accent-color:var(--dsw-alias-state-business-primary)}
+.tbx-assignee{flex:none;border:1px solid var(--dsw-alias-border-l1);border-radius:999px;padding:0 6px;font-size:10px;line-height:15px;color:var(--dsw-alias-label-tertiary);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tbx-cardArchived{opacity:.55}
+.tbx-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin:6px 0 12px}
+.tbx-stat{border:1px solid var(--dsw-alias-border-l1);border-radius:var(--dsw-radius-md);padding:7px 9px;background:var(--dsw-alias-bg-layer-1)}
+.tbx-statLabel{display:block;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.tbx-statValue{display:block;font-size:16px;line-height:22px;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary)}
+.tbx-chart{display:flex;align-items:flex-end;gap:2px;height:96px;padding:6px 0 0;border-bottom:1px solid var(--dsw-alias-border-l1);margin-bottom:4px}
+.tbx-bar{flex:1;min-width:2px;border-radius:2px 2px 0 0;background:var(--dsw-alias-state-business-primary);opacity:.75;min-height:1px}
+.tbx-bar:hover{opacity:1}
+.tbx-chartFoot{display:flex;justify-content:space-between;font-size:10px;color:var(--dsw-alias-label-tertiary);margin-bottom:12px}
+.tbx-section{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary);margin:14px 0 4px}
+.tbx-log{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:16px;border:1px solid var(--dsw-alias-border-l1);border-radius:var(--dsw-radius-md);background:var(--dsw-alias-bg-layer-1);padding:6px 8px;max-height:60vh;overflow:auto}
+.tbx-logLine{display:flex;gap:8px;white-space:pre-wrap;word-break:break-word}
+.tbx-logLineNoWrap{white-space:pre;overflow-x:auto}
+.tbx-sev{flex:none;width:44px;text-transform:uppercase;font-size:9px;letter-spacing:.04em;color:var(--dsw-alias-label-tertiary);padding-top:2px}
+.tbx-sevError{color:var(--dsw-alias-state-error-primary)}
+.tbx-sevWarn{color:var(--dsw-alias-state-warning-primary)}
+.tbx-noteRow{display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:var(--dsw-radius-md)}
+.tbx-noteRow:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.tbx-kind{flex:none;border:1px solid var(--dsw-alias-border-l1);border-radius:999px;padding:0 6px;font-size:10px;line-height:15px;color:var(--dsw-alias-label-tertiary);text-transform:lowercase}
+.tbx-noteText{flex:1;min-width:0;font-size:12px;line-height:17px;word-break:break-word}
+.tbx-addForm{display:flex;flex-direction:column;gap:6px;border:1px solid var(--dsw-alias-border-l1);border-radius:var(--dsw-radius-md);padding:8px;margin:8px 0 12px;background:var(--dsw-alias-bg-layer-1)}
+.tbx-addForm textarea{box-sizing:border-box;width:100%;min-height:52px;resize:vertical;border:1px solid var(--dsw-alias-border-l1);border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-bg-base);color:inherit;font:inherit;font-size:12px;padding:6px 8px;outline:none}
+.tbx-addForm textarea:focus{border-color:var(--dsw-alias-state-business-primary)}
+.tbx-addRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tbx-select{border:1px solid var(--dsw-alias-border-l1);border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-bg-layer-1);color:inherit;font:inherit;font-size:11px;padding:3px 6px}
+.tbx-voice{display:flex;align-items:center;gap:2px}
+.tbx-voiceBtn{width:24px;height:24px;border:none;border-radius:var(--dsw-radius-sm);background:0 0;color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+.tbx-voiceBtn:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
+.tbx-voiceBtn:focus-visible{outline:2px solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline-offset:-2px}
+.tbx-voiceOn{color:var(--dsw-alias-state-business-primary)}
 .tbx-badge{display:inline-block;border:1px solid var(--dsw-alias-border-l1);border-radius:999px;padding:0 6px;font-size:10px;color:var(--dsw-alias-label-tertiary);line-height:16px}
 `
     if (typeof document !== 'undefined' && document.querySelector('style[data-plugin-css=' + JSON.stringify(CSS_TAG) + ']') === null) {
@@ -305,21 +340,25 @@ window.__ModuleLoader__.load({
     }
 
     function BoardTab({ t }) {
-      const [board, setBoard] = useState(null)
+      const [state, setState] = useState(null)
       const [error, setError] = useState(null)
       const [saved, setSaved] = useState(false)
       const [dropAt, setDropAt] = useState(null)
       const [editing, setEditing] = useState(null)
-      const [draft, setDraft] = useState('')
+      const [draft, setDraft] = useState({ text: '', assignee: '', priority: 'normal' })
+      const [selected, setSelected] = useState([])
+      const [showArchived, setShowArchived] = useState(false)
+      const [renaming, setRenaming] = useState(null)
+      const [boardName, setBoardName] = useState('')
       const drag = useRef(null)
       const saveTimer = useRef(null)
 
       useEffect(() => {
-        fetchJson('/api/toolbox/board').then(setBoard).catch((e) => setError(e.message))
+        fetchJson('/api/toolbox/board').then(setState).catch((e) => setError(e.message))
       }, [])
 
       const persist = useCallback((next) => {
-        setBoard(next)
+        setState(next)
         setSaved(false)
         clearTimeout(saveTimer.current)
         saveTimer.current = setTimeout(() => {
@@ -332,53 +371,87 @@ window.__ModuleLoader__.load({
       }, [])
 
       if (error) return h('div', { className: 'tbx-error' }, error)
-      if (board === null) return h('div', { className: 'tbx-empty' }, t('loading'))
+      if (state === null) return h('div', { className: 'tbx-empty' }, t('loading'))
+
+      const board = state.boards.find((entry) => entry.id === state.activeBoard) || state.boards[0]
+      const withBoard = (mutate) => persist({
+        ...state,
+        boards: state.boards.map((entry) => (entry.id === board.id ? mutate(entry) : entry)),
+      })
+      const withColumn = (columnId, mutate) => withBoard((entry) => ({
+        ...entry,
+        columns: entry.columns.map((column) => (column.id === columnId ? mutate(column) : column)),
+      }))
+      const allCards = board.columns.flatMap((column) => column.cards)
+      const visible = (card) => showArchived || !card.archived
 
       const addCard = (columnId, text) => {
         const trimmed = text.trim()
         if (trimmed === '') return
-        persist({
-          ...board,
-          columns: board.columns.map((column) => column.id === columnId
-            ? { ...column, cards: [...column.cards, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, text: trimmed }] }
-            : column),
-        })
+        withColumn(columnId, (column) => ({
+          ...column,
+          cards: [...column.cards, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, text: trimmed, assignee: '', priority: 'normal', archived: false, createdAt: Date.now() }],
+        }))
       }
 
-      const removeCard = (columnId, cardId) => {
-        persist({
-          ...board,
-          columns: board.columns.map((column) => column.id === columnId
-            ? { ...column, cards: column.cards.filter((card) => card.id !== cardId) }
-            : column),
-        })
+      const patchCard = (cardId, patch) => withBoard((entry) => ({
+        ...entry,
+        columns: entry.columns.map((column) => ({
+          ...column,
+          cards: column.cards.map((card) => (card.id === cardId ? { ...card, ...patch } : card)),
+        })),
+      }))
+
+      const removeCards = (ids) => {
+        const drop = new Set(ids)
+        withBoard((entry) => ({
+          ...entry,
+          columns: entry.columns.map((column) => ({ ...column, cards: column.cards.filter((card) => !drop.has(card.id)) })),
+        }))
+        setSelected((previous) => previous.filter((id) => !drop.has(id)))
       }
 
-      const renameCard = (columnId, cardId, text) => {
-        const trimmed = text.trim()
-        if (trimmed === '') return
-        persist({
-          ...board,
-          columns: board.columns.map((column) => column.id === columnId
-            ? { ...column, cards: column.cards.map((card) => (card.id === cardId ? { ...card, text: trimmed } : card)) }
-            : column),
+      const archiveCards = (ids) => {
+        const drop = new Set(ids)
+        withBoard((entry) => ({
+          ...entry,
+          columns: entry.columns.map((column) => ({
+            ...column,
+            cards: column.cards.map((card) => (drop.has(card.id) ? { ...card, archived: true } : card)),
+          })),
+        }))
+        setSelected([])
+      }
+
+      const moveCards = (ids, toColumn) => {
+        const moving = allCards.filter((card) => ids.includes(card.id))
+        if (moving.length === 0) return
+        withBoard((entry) => {
+          const stripped = entry.columns.map((column) => ({ ...column, cards: column.cards.filter((card) => !ids.includes(card.id)) }))
+          return {
+            ...entry,
+            columns: stripped.map((column) => (column.id === toColumn ? { ...column, cards: [...column.cards, ...moving] } : column)),
+          }
         })
+        setSelected([])
       }
 
       const moveCard = (fromColumn, cardId, toColumn, toIndex) => {
-        const source = board.columns.find((c) => c.id === fromColumn)
-        const moving = source?.cards.find((c) => c.id === cardId)
+        const source = board.columns.find((column) => column.id === fromColumn)
+        const moving = source?.cards.find((card) => card.id === cardId)
         if (moving === undefined) return
-        const without = board.columns.map((column) => column.id === fromColumn
-          ? { ...column, cards: column.cards.filter((card) => card.id !== cardId) }
-          : column)
-        persist({
-          ...board,
-          columns: without.map((column) => {
-            if (column.id !== toColumn) return column
-            const at = Math.max(0, Math.min(toIndex, column.cards.length))
-            return { ...column, cards: [...column.cards.slice(0, at), moving, ...column.cards.slice(at)] }
-          }),
+        withBoard((entry) => {
+          const without = entry.columns.map((column) => (column.id === fromColumn
+            ? { ...column, cards: column.cards.filter((card) => card.id !== cardId) }
+            : column))
+          return {
+            ...entry,
+            columns: without.map((column) => {
+              if (column.id !== toColumn) return column
+              const at = Math.max(0, Math.min(toIndex, column.cards.length))
+              return { ...column, cards: [...column.cards.slice(0, at), moving, ...column.cards.slice(at)] }
+            }),
+          }
         })
       }
 
@@ -404,8 +477,8 @@ window.__ModuleLoader__.load({
         if (source === null) return
         const index = target !== null && target.column === columnId ? target.index : Number.MAX_SAFE_INTEGER
         if (source.column === columnId) {
-          const column = board.columns.find((c) => c.id === columnId)
-          const from = column.cards.findIndex((c) => c.id === source.card)
+          const column = board.columns.find((entry) => entry.id === columnId)
+          const from = column.cards.findIndex((card) => card.id === source.card)
           if (from < 0) return
           const adjusted = from < index ? index - 1 : index
           if (adjusted === from) return
@@ -415,82 +488,216 @@ window.__ModuleLoader__.load({
         }
       }
 
+      const toggleSelected = (cardId) => setSelected((previous) => (
+        previous.includes(cardId) ? previous.filter((id) => id !== cardId) : [...previous, cardId]
+      ))
+
+      const newBoard = () => {
+        const id = `board-${Date.now().toString(36)}`
+        const name = t('board.newName', { count: String(state.boards.length + 1) })
+        persist({
+          ...state,
+          activeBoard: id,
+          boards: [...state.boards, {
+            id,
+            name,
+            columns: [
+              { id: 'todo', title: t('board.todo'), cards: [] },
+              { id: 'doing', title: t('board.doing'), cards: [] },
+              { id: 'done', title: t('board.done'), cards: [] },
+            ],
+          }],
+        })
+      }
+
+      const deleteBoard = () => {
+        if (state.boards.length <= 1) return
+        const remaining = state.boards.filter((entry) => entry.id !== board.id)
+        persist({ ...state, activeBoard: remaining[0].id, boards: remaining })
+      }
+
+      const priorityDot = (priority) => h('span', {
+        className: 'tbx-prio',
+        title: t(`board.priority.${priority}`),
+        style: { background: priority === 'high' ? 'var(--dsw-alias-state-error-primary)' : priority === 'low' ? 'var(--dsw-alias-label-tertiary)' : 'var(--dsw-alias-state-business-primary)' },
+      })
+
       return h(
         React.Fragment,
         null,
-        h('div', { className: 'tbx-note' }, saved ? t('board.saved') : t('board.note')),
+        h(
+          'div',
+          { className: 'tbx-toolbar' },
+          h('select', {
+            className: 'tbx-select',
+            value: board.id,
+            'aria-label': t('board.switch'),
+            onChange: (event) => persist({ ...state, activeBoard: event.target.value }),
+          }, state.boards.map((entry) => h('option', { key: entry.id, value: entry.id }, entry.name))),
+          renaming === board.id
+            ? h('input', {
+                className: 'tbx-search',
+                style: { maxWidth: 180 },
+                autoFocus: true,
+                value: boardName,
+                'aria-label': t('board.rename'),
+                onChange: (event) => setBoardName(event.target.value),
+                onBlur: () => {
+                  const name = boardName.trim()
+                  if (name !== '') withBoard((entry) => ({ ...entry, name }))
+                  setRenaming(null)
+                },
+                onKeyDown: (event) => {
+                  if (event.key === 'Enter') event.currentTarget.blur()
+                  if (event.key === 'Escape') setRenaming(null)
+                },
+              })
+            : h('button', {
+                type: 'button',
+                className: 'tbx-btn',
+                title: t('board.rename'),
+                onClick: () => { setBoardName(board.name); setRenaming(board.id) },
+              }, t('board.rename')),
+          h('button', { type: 'button', className: 'tbx-btn', onClick: newBoard }, t('board.new')),
+          state.boards.length > 1
+            ? h('button', { type: 'button', className: 'tbx-btn', onClick: deleteBoard }, t('board.delete'))
+            : null,
+          h('label', { className: 'tbx-check' },
+            h('input', { type: 'checkbox', checked: showArchived, onChange: (event) => setShowArchived(event.target.checked) }),
+            t('board.showArchived'),
+          ),
+          h('span', { className: 'tbx-muted' }, saved ? t('board.saved') : t('board.note')),
+        ),
+        selected.length > 0
+          ? h(
+              'div',
+              { className: 'tbx-bulk' },
+              h('span', { className: 'tbx-muted' }, t('board.selected', { count: String(selected.length) })),
+              h('select', {
+                className: 'tbx-select',
+                value: '',
+                'aria-label': t('board.moveTo'),
+                onChange: (event) => {
+                  if (event.target.value !== '') moveCards(selected, event.target.value)
+                },
+              },
+                h('option', { value: '' }, t('board.moveTo')),
+                board.columns.map((column) => h('option', { key: column.id, value: column.id }, column.title)),
+              ),
+              h('button', { type: 'button', className: 'tbx-btn', onClick: () => archiveCards(selected) }, t('board.archive')),
+              h('button', { type: 'button', className: 'tbx-btn', onClick: () => removeCards(selected) }, t('board.removeSelected')),
+              h('button', { type: 'button', className: 'tbx-btn', onClick: () => setSelected([]) }, t('board.clear')),
+            )
+          : null,
         h(
           'div',
           { className: 'tbx-board' },
-          board.columns.map((column) => h(
-            'div',
-            {
-              className: 'tbx-col' + (dropAt !== null && dropAt.column === column.id ? ' tbx-colOver' : ''),
-              key: column.id,
-              onDragOver: (event) => onColumnDragOver(event, column.id, column.cards.length),
-              onDragLeave: (event) => {
-                if (event.currentTarget.contains(event.relatedTarget)) return
-                setDropAt(null)
+          board.columns.map((column) => {
+            const cards = column.cards.filter(visible)
+            return h(
+              'div',
+              {
+                className: 'tbx-col' + (dropAt !== null && dropAt.column === column.id ? ' tbx-colOver' : ''),
+                key: column.id,
+                onDragOver: (event) => onColumnDragOver(event, column.id, cards.length),
+                onDragLeave: (event) => {
+                  if (event.currentTarget.contains(event.relatedTarget)) return
+                  setDropAt(null)
+                },
+                onDrop: (event) => onDrop(event, column.id),
               },
-              onDrop: (event) => onDrop(event, column.id),
-            },
-            h('div', { className: 'tbx-colHead' },
-              h('span', null, column.title),
-              h('span', null, String(column.cards.length)),
-            ),
-            column.cards.map((card, index) => h(
-              React.Fragment,
-              { key: card.id },
-              dropAt !== null && dropAt.column === column.id && dropAt.index === index
+              h('div', { className: 'tbx-colHead' },
+                h('span', null, column.title),
+                h('span', null, String(cards.length)),
+              ),
+              cards.map((card, index) => h(
+                React.Fragment,
+                { key: card.id },
+                dropAt !== null && dropAt.column === column.id && dropAt.index === index
+                  ? h('div', { className: 'tbx-drop' })
+                  : null,
+                editing === card.id
+                  ? h(
+                      'div',
+                      { className: 'tbx-editCard' },
+                      h('textarea', {
+                        autoFocus: true,
+                        value: draft.text,
+                        'aria-label': t('board.cardText'),
+                        onChange: (event) => setDraft({ ...draft, text: event.target.value }),
+                        onKeyDown: (event) => {
+                          if (event.key === 'Escape') {
+                            event.preventDefault()
+                            setEditing(null)
+                          } else if (event.key === 'Enter' && !event.shiftKey) {
+                            event.preventDefault()
+                            if (draft.text.trim() !== '') patchCard(card.id, { text: draft.text.trim(), assignee: draft.assignee.trim(), priority: draft.priority })
+                            setEditing(null)
+                          }
+                        },
+                      }),
+                      h('div', { className: 'tbx-addRow' },
+                        h('input', {
+                          className: 'tbx-search',
+                          style: { maxWidth: 120 },
+                          placeholder: t('board.assignee'),
+                          value: draft.assignee,
+                          'aria-label': t('board.assignee'),
+                          onChange: (event) => setDraft({ ...draft, assignee: event.target.value }),
+                        }),
+                        h('select', {
+                          className: 'tbx-select',
+                          value: draft.priority,
+                          'aria-label': t('board.priority'),
+                          onChange: (event) => setDraft({ ...draft, priority: event.target.value }),
+                        }, ['low', 'normal', 'high'].map((level) => h('option', { key: level, value: level }, t(`board.priority.${level}`)))),
+                        h('button', {
+                          type: 'button',
+                          className: 'tbx-btn',
+                          onClick: () => {
+                            if (draft.text.trim() !== '') patchCard(card.id, { text: draft.text.trim(), assignee: draft.assignee.trim(), priority: draft.priority })
+                            setEditing(null)
+                          },
+                        }, t('board.save')),
+                        h('button', { type: 'button', className: 'tbx-btn', onClick: () => setEditing(null) }, t('board.cancel')),
+                      ),
+                    )
+                  : h(
+                      'div',
+                      {
+                        className: 'tbx-card' + (card.archived ? ' tbx-cardArchived' : ''),
+                        draggable: true,
+                        onDragStart: () => { drag.current = { column: column.id, card: card.id } },
+                        onDragOver: (event) => onCardDragOver(event, column.id, index),
+                        onDoubleClick: () => {
+                          setDraft({ text: card.text, assignee: card.assignee || '', priority: card.priority || 'normal' })
+                          setEditing(card.id)
+                        },
+                      },
+                      h('input', {
+                        type: 'checkbox',
+                        className: 'tbx-cardCheck',
+                        checked: selected.includes(card.id),
+                        'aria-label': t('board.select', { text: card.text }),
+                        onChange: () => toggleSelected(card.id),
+                      }),
+                      priorityDot(card.priority || 'normal'),
+                      h('span', { className: 'tbx-cardText' }, card.text),
+                      card.assignee ? h('span', { className: 'tbx-assignee' }, card.assignee) : null,
+                      h('button', {
+                        type: 'button',
+                        className: 'tbx-cardX',
+                        'aria-label': t('board.remove', { text: card.text }),
+                        onClick: () => removeCards([card.id]),
+                      }, '×'),
+                    ),
+              )),
+              dropAt !== null && dropAt.column === column.id && dropAt.index >= cards.length
                 ? h('div', { className: 'tbx-drop' })
                 : null,
-              editing === card.id
-                ? h('textarea', {
-                    className: 'tbx-editCard',
-                    autoFocus: true,
-                    value: draft,
-                    onChange: (event) => setDraft(event.target.value),
-                    onKeyDown: (event) => {
-                      if (event.key === 'Escape') {
-                        event.preventDefault()
-                        setEditing(null)
-                      } else if (event.key === 'Enter' && !event.shiftKey) {
-                        event.preventDefault()
-                        renameCard(column.id, card.id, draft)
-                        setEditing(null)
-                      }
-                    },
-                    onBlur: () => {
-                      renameCard(column.id, card.id, draft)
-                      setEditing(null)
-                    },
-                  })
-                : h(
-                    'div',
-                    {
-                      className: 'tbx-card',
-                      draggable: true,
-                      onDragStart: () => { drag.current = { column: column.id, card: card.id } },
-                      onDragOver: (event) => onCardDragOver(event, column.id, index),
-                      onDoubleClick: () => {
-                        setDraft(card.text)
-                        setEditing(card.id)
-                      },
-                    },
-                    h('span', { className: 'tbx-cardText' }, card.text),
-                    h('button', {
-                      type: 'button',
-                      className: 'tbx-cardX',
-                      'aria-label': t('board.remove', { text: card.text }),
-                      onClick: () => removeCard(column.id, card.id),
-                    }, '×'),
-                  ),
-            )),
-            dropAt !== null && dropAt.column === column.id && dropAt.index >= column.cards.length
-              ? h('div', { className: 'tbx-drop' })
-              : null,
-            h(AddCard, { onAdd: (text) => addCard(column.id, text), label: t('board.add') }),
-          )),
+              h(AddCard, { onAdd: (text) => addCard(column.id, text), label: t('board.add') }),
+            )
+          }),
         ),
       )
     }
@@ -664,6 +871,321 @@ window.__ModuleLoader__.load({
       )
     }
 
+    function InsightsPage({ t }) {
+      const [data, setData] = useState(null)
+      const [error, setError] = useState(null)
+      const [days, setDays] = useState(30)
+      useEffect(() => {
+        setData(null)
+        setError(null)
+        fetchJson(`/api/toolbox/insights?days=${days}`).then(setData).catch((e) => setError(e.message))
+      }, [days])
+      const head = h(
+        'div',
+        { className: 'tbx-head' },
+        h('span', { className: 'tbx-title' }, t('insights.title')),
+        h('span', { className: 'tbx-muted' }, t('insights.window', { days: String(days) })),
+      )
+      if (error) return h('div', { className: 'tbx-page' }, head, h('div', { className: 'tbx-body' }, h('div', { className: 'tbx-error' }, error)))
+      if (data === null) return h('div', { className: 'tbx-page' }, head, h('div', { className: 'tbx-body' }, h('div', { className: 'tbx-empty' }, t('loading'))))
+      const peak = Math.max(1, ...data.daily.map((day) => day.input + day.output))
+      const stat = (label, value) => h(
+        'div',
+        { className: 'tbx-stat' },
+        h('span', { className: 'tbx-statLabel' }, label),
+        h('span', { className: 'tbx-statValue' }, value),
+      )
+      return h(
+        'div',
+        { className: 'tbx-page' },
+        head,
+        h(
+          'div',
+          { className: 'tbx-body' },
+          h(
+            'div',
+            { className: 'tbx-toolbar' },
+            [7, 30, 90].map((value) => h('button', {
+              key: value,
+              type: 'button',
+              className: 'tbx-btn',
+              'aria-pressed': days === value,
+              style: days === value ? { borderColor: 'var(--dsw-alias-state-business-primary)', color: 'var(--dsw-alias-label-primary)' } : undefined,
+              onClick: () => setDays(value),
+            }, t('insights.days', { days: String(value) }))),
+            h('span', { className: 'tbx-muted' }, t('insights.scanned', { count: String(data.scanned) })),
+          ),
+          h(
+            'div',
+            { className: 'tbx-stats' },
+            stat(t('insights.sessions'), String(data.totals.sessions)),
+            stat(t('insights.messages'), n(data.totals.messages)),
+            stat(t('insights.input'), n(data.totals.input)),
+            stat(t('insights.output'), n(data.totals.output)),
+            stat(t('insights.cache'), n(data.totals.cache)),
+            stat(t('insights.tools'), n(data.totals.tools)),
+            stat(t('insights.errors'), n(data.totals.errors)),
+          ),
+          data.daily.length === 0
+            ? h('div', { className: 'tbx-empty' }, t('insights.empty'))
+            : h(
+                React.Fragment,
+                null,
+                h('div', { className: 'tbx-section' }, t('insights.perDay')),
+                h(
+                  'div',
+                  { className: 'tbx-chart', role: 'img', 'aria-label': t('insights.chartLabel') },
+                  data.daily.map((day) => h('div', {
+                    key: day.date,
+                    className: 'tbx-bar',
+                    style: { height: `${Math.max(1, Math.round(((day.input + day.output) / peak) * 100))}%` },
+                    title: `${day.date} · ${n(day.input + day.output)} ${t('insights.tokens')} · ${day.messages} ${t('sessions.messagesShort')} · ${day.tools} ${t('insights.toolCalls')}`,
+                  })),
+                ),
+                h(
+                  'div',
+                  { className: 'tbx-chartFoot' },
+                  h('span', null, data.daily[0].date),
+                  h('span', null, data.daily[data.daily.length - 1].date),
+                ),
+              ),
+          h('div', { className: 'tbx-section' }, t('insights.byModel')),
+          h(
+            'div',
+            { className: 'tbx-list' },
+            data.models.length === 0
+              ? h('div', { className: 'tbx-empty' }, t('insights.empty'))
+              : data.models.map((row) => h(
+                  'div',
+                  { className: 'tbx-row', key: `${row.provider}/${row.model}` },
+                  h('span', { className: 'tbx-copy' },
+                    h('span', { className: 'tbx-name' }, h('span', { className: 'tbx-badge' }, row.provider), ' ', row.model),
+                    h('span', { className: 'tbx-desc' },
+                      `${n(row.messages)} ${t('sessions.messagesShort')} · ${n(row.input)} ${t('insights.inShort')} · ${n(row.output)} ${t('insights.outShort')} · ${n(row.cache)} ${t('providers.cacheShort')} · ${row.errors} ${t('providers.errorsShort')}`),
+                  ),
+                )),
+          ),
+          h('div', { className: 'tbx-section' }, t('insights.byTool')),
+          h(
+            'div',
+            { className: 'tbx-list' },
+            data.tools.length === 0
+              ? h('div', { className: 'tbx-empty' }, t('insights.empty'))
+              : data.tools.slice(0, 20).map((row) => h(
+                  'div',
+                  { className: 'tbx-row', key: row.name },
+                  h('span', { className: 'tbx-name', style: { flex: '0 0 140px' } }, row.name),
+                  h('span', { className: 'tbx-desc' }, `${n(row.calls)} ${t('insights.calls')}`),
+                  h('span', { className: 'tbx-muted' }, row.errors === 0 ? t('insights.noErrors') : `${row.errors} ${t('providers.errorsShort')}`),
+                )),
+          ),
+        ),
+      )
+    }
+
+    function LogsPage({ t }) {
+      const [data, setData] = useState(null)
+      const [error, setError] = useState(null)
+      const [index, setIndex] = useState(0)
+      const [level, setLevel] = useState('all')
+      const [tail, setTail] = useState(200)
+      const [wrap, setWrap] = useState(true)
+      const [auto, setAuto] = useState(false)
+      const load = useCallback(() => {
+        fetchJson(`/api/toolbox/logs?index=${index}&tail=${tail}&level=${level}`)
+          .then((next) => { setData(next); setError(null) })
+          .catch((e) => setError(e.message))
+      }, [index, tail, level])
+      useEffect(load, [load])
+      useEffect(() => {
+        if (!auto) return undefined
+        const id = window.setInterval(load, 5000)
+        return () => window.clearInterval(id)
+      }, [auto, load])
+      const head = h('div', { className: 'tbx-head' }, h('span', { className: 'tbx-title' }, t('logs.title')))
+      if (error) return h('div', { className: 'tbx-page' }, head, h('div', { className: 'tbx-body' }, h('div', { className: 'tbx-error' }, error)))
+      if (data === null) return h('div', { className: 'tbx-page' }, head, h('div', { className: 'tbx-body' }, h('div', { className: 'tbx-empty' }, t('loading'))))
+      if (data.files.length === 0) {
+        return h('div', { className: 'tbx-page' }, head, h('div', { className: 'tbx-body' }, h('div', { className: 'tbx-empty' }, t('logs.none'))))
+      }
+      return h(
+        'div',
+        { className: 'tbx-page' },
+        head,
+        h(
+          'div',
+          { className: 'tbx-body' },
+          h(
+            'div',
+            { className: 'tbx-toolbar' },
+            h('select', {
+              className: 'tbx-select',
+              value: String(index),
+              'aria-label': t('logs.file'),
+              onChange: (event) => setIndex(Number(event.target.value)),
+            }, data.files.map((file, position) => h('option', { key: file.label, value: String(position) }, file.label))),
+            h('select', {
+              className: 'tbx-select',
+              value: level,
+              'aria-label': t('logs.level'),
+              onChange: (event) => setLevel(event.target.value),
+            },
+              h('option', { value: 'all' }, t('logs.all')),
+              h('option', { value: 'error' }, t('logs.errors')),
+              h('option', { value: 'warn' }, t('logs.warnings')),
+              h('option', { value: 'info' }, t('logs.info')),
+            ),
+            h('select', {
+              className: 'tbx-select',
+              value: String(tail),
+              'aria-label': t('logs.tail'),
+              onChange: (event) => setTail(Number(event.target.value)),
+            }, [100, 200, 500, 1000].map((value) => h('option', { key: value, value: String(value) }, `${value} ${t('logs.lines')}`))),
+            h('label', { className: 'tbx-check' },
+              h('input', { type: 'checkbox', checked: wrap, onChange: (event) => setWrap(event.target.checked) }),
+              t('logs.wrap'),
+            ),
+            h('label', { className: 'tbx-check' },
+              h('input', { type: 'checkbox', checked: auto, onChange: (event) => setAuto(event.target.checked) }),
+              t('logs.auto'),
+            ),
+            h('button', { type: 'button', className: 'tbx-btn', onClick: load }, t('logs.refresh')),
+            h('span', { className: 'tbx-muted' }, t('logs.count', { shown: String(data.lines.length), total: String(data.total ?? data.lines.length) })),
+          ),
+          h(
+            'div',
+            { className: 'tbx-log' },
+            data.lines.length === 0
+              ? h('div', { className: 'tbx-empty' }, t('logs.empty'))
+              : data.lines.map((line, position) => h(
+                  'div',
+                  { className: 'tbx-logLine' + (wrap ? '' : ' tbx-logLineNoWrap'), key: position },
+                  h('span', { className: 'tbx-sev' + (line.severity === 'error' ? ' tbx-sevError' : line.severity === 'warn' ? ' tbx-sevWarn' : '') }, line.severity),
+                  h('span', null, line.text),
+                )),
+          ),
+        ),
+      )
+    }
+
+    function MemoryPage({ t }) {
+      const [data, setData] = useState(null)
+      const [error, setError] = useState(null)
+      const [query, setQuery] = useState('')
+      const [draft, setDraft] = useState('')
+      const [kind, setKind] = useState('fact')
+      const [pin, setPin] = useState(false)
+      const [busy, setBusy] = useState(false)
+      const load = useCallback(() => {
+        fetchJson(`/api/toolbox/memory?q=${encodeURIComponent(query)}`)
+          .then((next) => { setData(next); setError(next.error || null) })
+          .catch((e) => setError(e.message))
+      }, [query])
+      useEffect(() => {
+        const id = window.setTimeout(load, 200)
+        return () => window.clearTimeout(id)
+      }, [load])
+      const act = async (body) => {
+        setBusy(true)
+        setError(null)
+        try {
+          await fetchJson('/api/toolbox/memory', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+          })
+          load()
+        } catch (e) {
+          setError(e.message)
+        } finally {
+          setBusy(false)
+        }
+      }
+      const head = h('div', { className: 'tbx-head' }, h('span', { className: 'tbx-title' }, t('memory.title')))
+      return h(
+        'div',
+        { className: 'tbx-page' },
+        head,
+        h(
+          'div',
+          { className: 'tbx-body' },
+          h(
+            'div',
+            { className: 'tbx-toolbar' },
+            h('input', {
+              className: 'tbx-search',
+              placeholder: t('memory.search'),
+              value: query,
+              'aria-label': t('memory.search'),
+              onChange: (event) => setQuery(event.target.value),
+            }),
+            data === null ? null : h('span', { className: 'tbx-muted' }, t('memory.count', { count: String(data.total) })),
+          ),
+          h(
+            'form',
+            {
+              className: 'tbx-addForm',
+              onSubmit: (event) => {
+                event.preventDefault()
+                const text = draft.trim()
+                if (text === '') return
+                void act({ action: 'add', text, kind, pin }).then(() => { setDraft(''); setPin(false) })
+              },
+            },
+            h('textarea', {
+              value: draft,
+              placeholder: t('memory.placeholder'),
+              'aria-label': t('memory.placeholder'),
+              onChange: (event) => setDraft(event.target.value),
+            }),
+            h(
+              'div',
+              { className: 'tbx-addRow' },
+              h('select', {
+                className: 'tbx-select',
+                value: kind,
+                'aria-label': t('memory.kind'),
+                onChange: (event) => setKind(event.target.value),
+              }, ['fact', 'pref', 'decision', 'person', 'project', 'lesson'].map((value) => h('option', { key: value, value }, value))),
+              h('label', { className: 'tbx-check' },
+                h('input', { type: 'checkbox', checked: pin, onChange: (event) => setPin(event.target.checked) }),
+                t('memory.pin'),
+              ),
+              h('button', { type: 'submit', className: 'tbx-btn', disabled: busy || draft.trim() === '' }, t('memory.add')),
+            ),
+          ),
+          error ? h('div', { className: 'tbx-error' }, error) : null,
+          data === null
+            ? h('div', { className: 'tbx-empty' }, t('loading'))
+            : data.notes.length === 0
+              ? h('div', { className: 'tbx-empty' }, t('memory.empty'))
+              : h(
+                  'div',
+                  { className: 'tbx-list' },
+                  data.notes.map((note) => h(
+                    'div',
+                    { className: 'tbx-noteRow', key: note.id },
+                    h('span', { className: 'tbx-kind' }, note.kind),
+                    h('span', { className: 'tbx-noteText' }, note.text),
+                    h('button', {
+                      type: 'button',
+                      className: 'tbx-btn',
+                      'aria-pressed': note.pinned === 1,
+                      title: note.pinned === 1 ? t('memory.unpin') : t('memory.pin'),
+                      onClick: () => void act({ action: 'pin', id: note.id, pinned: note.pinned !== 1 }),
+                    }, note.pinned === 1 ? '★' : '☆'),
+                    h('button', {
+                      type: 'button',
+                      className: 'tbx-btn',
+                      title: t('memory.forget'),
+                      onClick: () => void act({ action: 'forget', ids: [note.id] }),
+                    }, '×'),
+                  )),
+                ),
+        ),
+      )
+    }
+
     const SkillsIcon = () => h(
       'svg',
       { width: 16, height: 16, viewBox: '0 0 16 16', 'aria-hidden': 'true' },
@@ -711,6 +1233,158 @@ window.__ModuleLoader__.load({
       }),
     )
 
+    /**
+     * Header actions: read the last answer aloud, and notify when a turn ends
+     * while the window is in the background. Both are opt-in and local — the
+     * speech engine is the browser's, and the notification is the OS's.
+     */
+    function VoiceActions({ sessionId, sessions, t }) {
+      const [notify, setNotify] = useState(() => {
+        try {
+          return window.localStorage.getItem('dsh.toolbox.notify') === '1'
+        } catch {
+          return false
+        }
+      })
+      const [speaking, setSpeaking] = useState(false)
+      const [error, setError] = useState(null)
+      const binding = useMemo(() => {
+        try {
+          return sessions?.binding?.(sessionId)
+        } catch {
+          return undefined
+        }
+      }, [sessions, sessionId])
+      const subscribe = useCallback(
+        (notifyChange) => (binding === undefined ? () => {} : binding.session.subscribe(notifyChange)),
+        [binding],
+      )
+      const snapshot = React.useSyncExternalStore(
+        subscribe,
+        () => (binding === undefined ? null : binding.session.getSnapshot()),
+        () => null,
+      )
+      const running = snapshot?.running === true
+      const wasRunning = useRef(false)
+
+      useEffect(() => {
+        if (!notify) {
+          wasRunning.current = running
+          return
+        }
+        if (wasRunning.current && !running && document.hidden) {
+          try {
+            const note = new window.Notification(t('voice.doneTitle'), { body: t('voice.doneBody'), tag: `dsh-${sessionId}` })
+            note.onclick = () => window.focus()
+          } catch {
+            /* notifications unavailable */
+          }
+        }
+        wasRunning.current = running
+      }, [running, notify, sessionId, t])
+
+      const speak = async () => {
+        setError(null)
+        if (typeof window.speechSynthesis === 'undefined') {
+          setError(t('voice.unsupported'))
+          return
+        }
+        if (speaking) {
+          window.speechSynthesis.cancel()
+          setSpeaking(false)
+          return
+        }
+        try {
+          const body = await fetchJson(`/api/toolbox/last-message?sessionId=${encodeURIComponent(sessionId)}`)
+          const text = String(body.text || '').trim()
+          if (text === '') {
+            setError(t('voice.empty'))
+            return
+          }
+          const utterance = new window.SpeechSynthesisUtterance(text.slice(0, 4000))
+          utterance.onend = () => setSpeaking(false)
+          utterance.onerror = () => setSpeaking(false)
+          setSpeaking(true)
+          window.speechSynthesis.speak(utterance)
+        } catch (e) {
+          setError(e.message)
+          setSpeaking(false)
+        }
+      }
+
+      const toggleNotify = async () => {
+        const next = !notify
+        if (next && typeof window.Notification !== 'undefined' && window.Notification.permission === 'default') {
+          try {
+            await window.Notification.requestPermission()
+          } catch {
+            /* denied */
+          }
+        }
+        setNotify(next)
+        try {
+          window.localStorage.setItem('dsh.toolbox.notify', next ? '1' : '0')
+        } catch {
+          /* storage unavailable */
+        }
+      }
+
+      return h(
+        'div',
+        { className: 'tbx-voice' },
+        h('button', {
+          type: 'button',
+          className: 'tbx-voiceBtn',
+          'aria-pressed': speaking,
+          title: error || t('voice.read'),
+          onClick: () => void speak(),
+        }, speaking ? '■' : '▶'),
+        h('button', {
+          type: 'button',
+          className: 'tbx-voiceBtn' + (notify ? ' tbx-voiceOn' : ''),
+          'aria-pressed': notify,
+          title: t('voice.notify'),
+          onClick: () => void toggleNotify(),
+        }, '◔'),
+      )
+    }
+
+    const InsightsIcon = () => h(
+      'svg',
+      { width: 16, height: 16, viewBox: '0 0 16 16', 'aria-hidden': 'true' },
+      h('path', {
+        d: 'M2.5 13.5V9M6 13.5V5.5M9.5 13.5V7.5M13 13.5V3',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.4,
+        strokeLinecap: 'round',
+      }),
+    )
+
+    const LogsIcon = () => h(
+      'svg',
+      { width: 16, height: 16, viewBox: '0 0 16 16', 'aria-hidden': 'true' },
+      h('path', {
+        d: 'M2.5 4h11M2.5 8h11M2.5 12h7',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.3,
+        strokeLinecap: 'round',
+      }),
+    )
+
+    const MemoryIcon = () => h(
+      'svg',
+      { width: 16, height: 16, viewBox: '0 0 16 16', 'aria-hidden': 'true' },
+      h('path', {
+        d: 'M4 2.5h8v11l-4-2.6-4 2.6z',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.2,
+        strokeLinejoin: 'round',
+      }),
+    )
+
     const en = {
       panel: 'Toolbox',
       'skills.title': 'Skills',
@@ -733,6 +1407,59 @@ window.__ModuleLoader__.load({
       'command.stop': 'Stop',
       'command.stopping': 'Stopping…',
       'command.stopFailed': 'The session did not accept the stop request.',
+      'insights.title': 'Insights',
+      'insights.window': 'last {days} days',
+      'insights.days': '{days}d',
+      'insights.scanned': '{count} session logs scanned',
+      'insights.sessions': 'Sessions',
+      'insights.messages': 'Messages',
+      'insights.input': 'Input tokens',
+      'insights.output': 'Output tokens',
+      'insights.cache': 'Cache read',
+      'insights.tools': 'Tool calls',
+      'insights.errors': 'Tool errors',
+      'insights.perDay': 'Tokens per day',
+      'insights.chartLabel': 'Daily token usage',
+      'insights.tokens': 'tokens',
+      'insights.toolCalls': 'tool calls',
+      'insights.byModel': 'By model',
+      'insights.byTool': 'By tool',
+      'insights.inShort': 'in',
+      'insights.outShort': 'out',
+      'insights.calls': 'calls',
+      'insights.noErrors': 'no errors',
+      'insights.empty': 'Nothing recorded in this window.',
+      'logs.title': 'Logs',
+      'logs.file': 'Log file',
+      'logs.level': 'Severity',
+      'logs.all': 'All levels',
+      'logs.errors': 'Errors',
+      'logs.warnings': 'Warnings',
+      'logs.info': 'Info',
+      'logs.tail': 'Lines',
+      'logs.lines': 'lines',
+      'logs.wrap': 'Wrap',
+      'logs.auto': 'Auto',
+      'logs.refresh': 'Refresh',
+      'logs.count': '{shown} of {total}',
+      'logs.empty': 'No lines at this level.',
+      'logs.none': 'No log files found under ~/.dsh or ~/Library/Logs.',
+      'memory.title': 'Memory',
+      'memory.search': 'Search notes',
+      'memory.count': '{count} notes',
+      'memory.placeholder': 'One standalone sentence worth keeping…',
+      'memory.kind': 'Kind',
+      'memory.pin': 'Pin',
+      'memory.unpin': 'Unpin',
+      'memory.add': 'Add note',
+      'memory.forget': 'Forget this note',
+      'memory.empty': 'No notes match.',
+      'voice.read': 'Read the last answer aloud',
+      'voice.notify': 'Notify when a turn finishes in the background',
+      'voice.doneTitle': 'Turn finished',
+      'voice.doneBody': 'The agent finished while you were away.',
+      'voice.empty': 'No answer to read yet.',
+      'voice.unsupported': 'This browser has no speech engine.',
       'sessions.status': 'Status',
       'sessions.title': 'Session',
       'sessions.workspace': 'Workspace',
@@ -776,6 +1503,29 @@ window.__ModuleLoader__.load({
       'providers.empty': 'No model calls recorded yet.',
       'board.note': 'Drag cards between columns. Saved to ~/.dsh/toolbox/board.json.',
       'board.saved': 'Saved.',
+      'board.newName': 'Board {count}',
+      'board.todo': 'Todo',
+      'board.doing': 'Doing',
+      'board.done': 'Done',
+      'board.switch': 'Switch board',
+      'board.rename': 'Rename',
+      'board.new': 'New board',
+      'board.delete': 'Delete board',
+      'board.showArchived': 'Archived',
+      'board.selected': '{count} selected',
+      'board.moveTo': 'Move to…',
+      'board.archive': 'Archive',
+      'board.removeSelected': 'Delete',
+      'board.clear': 'Clear',
+      'board.cardText': 'Card text',
+      'board.assignee': 'Assignee',
+      'board.priority': 'Priority',
+      'board.priority.low': 'Low',
+      'board.priority.normal': 'Normal',
+      'board.priority.high': 'High',
+      'board.save': 'Save',
+      'board.cancel': 'Cancel',
+      'board.select': 'Select {text}',
       'board.add': 'Add a card',
       'board.remove': 'Remove {text}',
     }
@@ -802,6 +1552,59 @@ window.__ModuleLoader__.load({
       'command.stop': '停止',
       'command.stopping': '停止中…',
       'command.stopFailed': '会话没有接受停止请求。',
+      'insights.title': '洞察',
+      'insights.window': '最近 {days} 天',
+      'insights.days': '{days}天',
+      'insights.scanned': '已扫描 {count} 个会话日志',
+      'insights.sessions': '会话',
+      'insights.messages': '消息',
+      'insights.input': '输入 token',
+      'insights.output': '输出 token',
+      'insights.cache': '缓存读取',
+      'insights.tools': '工具调用',
+      'insights.errors': '工具错误',
+      'insights.perDay': '每日 token',
+      'insights.chartLabel': '每日 token 用量',
+      'insights.tokens': 'token',
+      'insights.toolCalls': '次工具调用',
+      'insights.byModel': '按模型',
+      'insights.byTool': '按工具',
+      'insights.inShort': '入',
+      'insights.outShort': '出',
+      'insights.calls': '次',
+      'insights.noErrors': '无错误',
+      'insights.empty': '该时间窗口内没有记录。',
+      'logs.title': '日志',
+      'logs.file': '日志文件',
+      'logs.level': '级别',
+      'logs.all': '全部级别',
+      'logs.errors': '错误',
+      'logs.warnings': '警告',
+      'logs.info': '信息',
+      'logs.tail': '行数',
+      'logs.lines': '行',
+      'logs.wrap': '换行',
+      'logs.auto': '自动',
+      'logs.refresh': '刷新',
+      'logs.count': '{shown} / {total}',
+      'logs.empty': '该级别没有日志行。',
+      'logs.none': '在 ~/.dsh 或 ~/Library/Logs 下没有找到日志文件。',
+      'memory.title': '记忆',
+      'memory.search': '搜索笔记',
+      'memory.count': '{count} 条笔记',
+      'memory.placeholder': '一句值得长期保留的独立陈述…',
+      'memory.kind': '类型',
+      'memory.pin': '置顶',
+      'memory.unpin': '取消置顶',
+      'memory.add': '添加笔记',
+      'memory.forget': '删除这条笔记',
+      'memory.empty': '没有匹配的笔记。',
+      'voice.read': '朗读上一条回答',
+      'voice.notify': '后台完成时通知',
+      'voice.doneTitle': '回合完成',
+      'voice.doneBody': '你离开时 agent 已完成。',
+      'voice.empty': '还没有可朗读的回答。',
+      'voice.unsupported': '此浏览器没有语音引擎。',
       'sessions.status': '状态',
       'sessions.title': '会话',
       'sessions.workspace': '工作区',
@@ -845,6 +1648,29 @@ window.__ModuleLoader__.load({
       'providers.empty': '还没有模型调用记录。',
       'board.note': '拖动卡片到其他列。保存于 ~/.dsh/toolbox/board.json。',
       'board.saved': '已保存。',
+      'board.newName': '看板 {count}',
+      'board.todo': '待办',
+      'board.doing': '进行中',
+      'board.done': '完成',
+      'board.switch': '切换看板',
+      'board.rename': '重命名',
+      'board.new': '新建看板',
+      'board.delete': '删除看板',
+      'board.showArchived': '已归档',
+      'board.selected': '已选 {count} 项',
+      'board.moveTo': '移动到…',
+      'board.archive': '归档',
+      'board.removeSelected': '删除',
+      'board.clear': '清除',
+      'board.cardText': '卡片内容',
+      'board.assignee': '负责人',
+      'board.priority': '优先级',
+      'board.priority.low': '低',
+      'board.priority.normal': '普通',
+      'board.priority.high': '高',
+      'board.save': '保存',
+      'board.cancel': '取消',
+      'board.select': '选择 {text}',
       'board.add': '添加卡片',
       'board.remove': '删除 {text}',
     }
@@ -870,6 +1696,9 @@ window.__ModuleLoader__.load({
         { key: 'providers', order: 24, label: 'providers.title', icon: ProvidersIcon },
         { key: 'kanban', order: 25, label: 'kanban.title', icon: KanbanIcon },
         { key: 'command', order: 26, label: 'command.title', icon: CommandIcon },
+        { key: 'insights', order: 27, label: 'insights.title', icon: InsightsIcon },
+        { key: 'logs', order: 28, label: 'logs.title', icon: LogsIcon },
+        { key: 'memory', order: 29, label: 'memory.title', icon: MemoryIcon },
       ]
       for (const row of rows) {
         ctx.slots.inject('sidebar.panellist', () =>
@@ -884,14 +1713,29 @@ window.__ModuleLoader__.load({
         providers: ProvidersPage,
         kanban: KanbanPage,
         command: (props) => h(CommandPage, { ...props, stop: stopSession, open: (id) => openSession(id), send: sendPrompt }),
+        insights: InsightsPage,
+        logs: LogsPage,
+        memory: MemoryPage,
       }
       for (const key of Object.keys(pages)) {
         ctx.slots.inject('main', () =>
           ctx.slots.register({ name: 'main', key, locale: NS }, pages[key]),
         )
       }
+      ctx.slots.inject('conversation.session.header.actions', () =>
+        ctx.slots.register(
+          {
+            name: 'conversation.session.header.actions',
+            id: 'toolbox-voice',
+            order: 30,
+            locale: NS,
+            inject: () => ({ sessions: ctx.sessions }),
+          },
+          VoiceActions,
+        ),
+      )
     }
 
-    return { inject: ['slots', 'locale', 'remote', 'remote.session'], apply }
+    return { inject: ['slots', 'locale', 'remote', 'remote.session', 'sessions'], apply }
   },
 })

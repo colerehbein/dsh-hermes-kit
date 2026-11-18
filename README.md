@@ -30,7 +30,7 @@ Needs `bash`, `python3`, and an existing DSH profile.
 | --- | --- |
 | **Model picker** — [`packages/model-picker`](packages/model-picker) | Replaces the composer's model seat: search with match highlighting, favorites, collapsible provider groups, per-model reasoning levels, and an **Edit models** dialog that decides which models appear at all. Large providers start collapsed. |
 | **Projects page** — [`packages/projects-page`](packages/projects-page) | A read-only Projects panel: registry roster, open `TODO.md` items, subfolders, newest sessions, session hover marks. |
-| **Skills · Providers · Kanban · Command Center** — [`packages/toolbox`](packages/toolbox) | Four sidebar panels: skills manager (curator load counts, enable/disable), provider health (tokens, errors, last used per model), a kanban board, and a session dashboard. |
+| **Seven sidebar panels** — [`packages/toolbox`](packages/toolbox) | Skills manager, provider health, kanban (multi-board, assignees, priority, archive, bulk actions), session dashboard, usage insights, log viewer, and a memory browser — plus read-aloud and background notifications in the conversation header. |
 
 ### CLIs — [`tools/dsh-kit`](tools/dsh-kit)
 
@@ -86,11 +86,19 @@ Four separate sidebar panels from one package.
 
 ![Provider health](docs/images/toolbox-providers.png)
 
-**Kanban** — three columns persisted at `~/.dsh/toolbox/board.json`: drag a card to any position (not just the column end), double-click to edit it in place, add and remove. The agent gets a `kanban` tool with the same actions, so it can read and move the board too.
+**Kanban** — multiple boards persisted at `~/.dsh/toolbox/board.json`. Drag a card to any position, double-click to edit its text, assignee and priority, select several cards for bulk move/archive/delete, and toggle archived cards. The agent gets a `kanban` tool with the same actions (list/add/move/remove/archive/assign/priority), so it can read and change the board too.
 
 ![Kanban board](docs/images/toolbox-kanban.png)
 
 **Command Center** — every durable session with its status, model, message count, token total and last write. **Open** switches the main view to that session, **Message** queues a prompt (steers it when the session is running), and **Stop** cancels an active turn.
+
+**Insights** — tokens, messages, tool calls and tool errors per day, per model and per tool over 7/30/90 days, read from the session logs. No cost is shown because DSH's catalog carries no price table; inventing one would be worse than omitting it.
+
+**Logs** — a viewer over the log files that exist (`~/.dsh/profiles/*/hub.log`, the kit's own logs, `~/Library/Logs/DeepSeek Harness`), with a severity filter, tail size, wrap toggle and auto-refresh.
+
+**Memory** — browse, search, add, pin and forget notes in the same SQLite store `mem` writes, without a terminal.
+
+**Read aloud / notify** — two buttons in the conversation header: speak the last answer with the browser's speech engine, and fire a desktop notification when a turn finishes while the window is in the background.
 
 ![Command Center](docs/images/command-center.png)
 
