@@ -4,6 +4,10 @@ Three [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugin
 
 ![The model picker](docs/images/model-picker.png)
 
+![Insights](docs/images/toolbox-insights.png)
+
+![Logs](docs/images/toolbox-logs.png)
+
 ## Install
 
 ```sh
