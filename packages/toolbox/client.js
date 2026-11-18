@@ -1881,7 +1881,7 @@ window.__ModuleLoader__.load({
       const rows = [
         { key: 'skills', order: 23, label: 'skills.title', icon: SkillsIcon },
         { key: 'providers', order: 24, label: 'providers.title', icon: ProvidersIcon },
-        { key: 'kanban', order: 25, label: 'kanban.title', icon: KanbanIcon },
+        { key: 'toolbox-kanban', order: 25, label: 'kanban.title', icon: KanbanIcon },
         { key: 'command', order: 26, label: 'command.title', icon: CommandIcon },
         { key: 'insights', order: 27, label: 'insights.title', icon: InsightsIcon },
         { key: 'logs', order: 28, label: 'logs.title', icon: LogsIcon },
@@ -1898,7 +1898,7 @@ window.__ModuleLoader__.load({
       const pages = {
         skills: SkillsPage,
         providers: ProvidersPage,
-        kanban: KanbanPage,
+        'toolbox-kanban': KanbanPage,
         command: (props) => h(CommandPage, { ...props, stop: stopSession, open: (id) => openSession(id), send: sendPrompt }),
         insights: InsightsPage,
         logs: LogsPage,

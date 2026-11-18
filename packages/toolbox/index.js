@@ -865,7 +865,7 @@ async function memoryPayload(query) {
 export function apply(ctx) {
   ctx.tools.register(
     defineTool({
-      name: 'kanban',
+      name: 'toolbox_kanban',
       description:
         'Read or change the shared kanban boards shown in the Harness Kanban panel. Actions: list, add, move, remove, archive, assign, priority. Cards are identified by their exact text or id; columns by id or title (Todo/Doing/Done); boards by id or name (defaults to the active board).',
       parameters: {
