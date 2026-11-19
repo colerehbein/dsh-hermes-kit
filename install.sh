@@ -74,6 +74,20 @@ for pkg in model-picker projects-page toolbox; do
   say "  $name"
 done
 
+# Third-party plugin patches. @michengai/dsh-codex-ui renders the whole sidebar
+# nav and both of its defects bite hardest on a profile with many plugins:
+#   - the expanded More list grows past the sidebar and clips the footer
+#   - its header-motion sync re-scans the document on every DOM mutation
+# Each script is idempotent and exits 0 when the package is not installed.
+for patch in patch-codex-ui-sidebar patch-codex-ui-motion; do
+  [ -f "$here/scripts/$patch.sh" ] || continue
+  if [ "$dry" -eq 1 ]; then
+    say "would: bash scripts/$patch.sh"
+  else
+    DSH_PROFILE_DIR="$profile_dir" bash "$here/scripts/$patch.sh" || say "  (patch $patch did not apply — see the message above)"
+  fi
+done
+
 if compgen -G "$profile_dir/created-plugins/view-*" >/dev/null; then
   say ""
   say "note: an older Projects plugin (created-plugins/view-*) is present."
